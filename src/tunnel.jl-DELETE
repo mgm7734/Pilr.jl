@@ -1,0 +1,21 @@
+global active_procs
+
+"""
+    ulr, processes = start_tunnel("myuser", mongo_password="guess!")
+
+Start ssh tunnel process to the mongodb servers and return them & a mongo connection URL.
+"""
+function start_tunnel(jenkins_user, dbname, mongo_password, base_port = 29020)
+    HOSTS=["mei-s4r-rabbit-mongo-stable0$i" for i = 1:1]  # Not work for i > 1 
+    procs =
+        [ run(Cmd(`ssh -NL $(base_port + i):$(host):27017 $jenkins_user@jenkins.pilrhealth.com`), wait=false) 
+              #run(pipeline(`ssh -vNL $(LOCAL_BASE_PORT + i):$(host):27017 $JENKINS_USER@jenkins.pilrhealth.com`, stderr="mongo-tunnel.log"), wait=false) 
+          for (i, host) in enumerate(HOSTS) ]
+
+    url = "mongodb://$dbname-user:$mongo_password@" * 
+          join(["localhost:$(base_port + i)" for i = eachindex(HOSTS)], ",") *
+          "/$dbname";
+    (url, procs)
+end
+start_tunnel(jenkins_user; dbname="mei-s4r-beta", base_port = 29020) =
+    start_tunnel(jenkins_user, dbname, ENV["MONGO_PASSWORD"], base_port)
