@@ -4,6 +4,7 @@ import Mongoc as M
 
 @testset "Pilr.jl" begin
 
+    
     beq(a::M.BSON,b::M.BSON) = M.as_json(a) == M.as_json(b)
     beq(a,b) = beq(M.BSON(a), M.BSON(b))
     #beq(a,b) = a == b
@@ -15,30 +16,28 @@ import Mongoc as M
             @test beq(doc, M.BSON("""{ "a": 1, "b": { "c" : 3 }}"""))
         end
 
-        #@test beq(bson([1,2,3]), M.BSON(""" [1,2,3] """))
-        @test beq(bson([1,2,3]), [1,2,3])
-        @test beq(bson(:a => [1,2,3]), M.BSON(""" { "a" : [1,2,3]} """))
-        @test beq(
-            bson(:a => ( :b => [1,2], :c => 3, :d => (:e => "OK!") )),
-            M.BSON("""
-                { "a": { "b" : [1,2], "c": 3, "d": { "e" : "OK!"} } }
-            """)
-        )
-        @test beq(
-            [ O( "\$group" => O( :id => "\$metadata.pt" ) ),
-              O( "\$sort" =>  O( :a => -1 ) ) ],
-            [ M.BSON(raw"""{ "$group" : { "id" : "$metadata.pt" } }"""),
-              M.BSON(raw"""{ "$sort" : { "a" : -1 } }""") ] 
-        )
+        @testset "bson check bson($a) == BSON($b)" for (a,b) in [
+            ( (:a=>1, :b=>:x => :y),
+              """ {"a": 1, "b": {"x": "y"}} """),
+            ( :a => [1,2,3],
+              """ { "a" : [1,2,3]} """),
+            ( :a => ( :b => [1,:x=>:y], :c => 3, :d => :e => "OK!" ),
+              """
+              { "a": { "b" : [1,{"x": "y"}], "c": 3, "d": { "e" : "OK!"} } }
+              """),
+            ( [1,2,3],
+              [1,2,3] ),
+            ( [ "\$group"=>(:id=>"\$metadata.pt", :foo=>"\$a.foo"),
+                "\$sort" =>:a=>-1 ],
+             raw"""
+              [ {"$group": {"id": "$metadata.pt", "foo": "$a.foo"}},
+                {"$sort": {"a": -1}} ]
+             """),
+        ]
+            @test M.as_json(bson(a)) == M.as_json(M.BSON(b))
 
-        @test beq(
-            bson([ ( "\$group" => ( :id => "\$metadata.pt",), ),
-                   ( "\$sort" =>  ( :a => -1, ), )
-                   ]),
-            [ M.BSON(raw"""{ "$group" : { "id" : "$metadata.pt" } }"""),
-              M.BSON(raw"""{ "$sort" : { "a" : -1 } }""") ] 
-        )
-
+        end
+        @test M.as_json(bson(code=:pt1, project=1234)) == M.as_json(M.BSON("""{ "code": "pt1", "project": 1234 }"""))
     end
 
 

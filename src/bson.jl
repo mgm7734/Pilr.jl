@@ -19,14 +19,14 @@ Mongoc.BSON with 2 entries:
   "b" => Dict{Any, Any}("\$ne"=>2)
 ```
 """
-bson(;nt...) = M.BSON((Pair(string(k), bson(v)) for (k,v) in pairs(nt))...)
-bson(ps::Pair...) = M.BSON((Pair(string(k), bson(v)) for (k,v) in ps)...)
+bson(;nt...) = M.BSON((Pair(string(k), _bson(v)) for (k,v) in pairs(nt))...)
+bson(ps::Pair...) = M.BSON((Pair(string(k), _bson(v)) for (k,v) in ps)...)
 bson(t::Tuple) = bson(t...)
-
-# method M.BSON(::Dict)  shoudl be ::AbstractDict
 bson(d::AbstractDict) = bson(pairs(d)...)
-
-bson(a::AbstractVector) = map(bson, a)
+bson(s::Symbol)=string(s)
 bson(x) = x
 
-O(x...) = bson(x...)
+# Mongoc.aggregate should accept Array{BSON} but doesn't
+bson(a::AbstractVector) = M.BSON(map(bson, a))
+_bson(a::AbstractVector) = map(bson, a)
+_bson(x) = bson(x)
