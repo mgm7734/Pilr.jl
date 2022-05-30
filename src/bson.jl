@@ -13,7 +13,7 @@ Mongoc.BSON with 2 entries:
   "b" => 2
   "a" => 1
 
-julia> bson(a = 2, b=("\$ne" => 2))
+julia> bson(:a => 2, :b=>"\$ne" => 2)
 Mongoc.BSON with 2 entries:
   "a" => 2
   "b" => Dict{Any, Any}("\$ne"=>2)
