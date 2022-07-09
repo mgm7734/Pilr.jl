@@ -1,6 +1,8 @@
 @enum DataCollectionKind data rawData deleted
 
 """
+    dataset_collection(db, project_code, dataset_code, [ data | rawData | deleted ])
+
 Return a mongo collection associated with a given PiLR dataset.
 
 # Examples
@@ -10,7 +12,7 @@ julia> db = database("mmendel")
 
 """
 function dataset_collection(
-    db::M.Database, project_code::String, dataset_code::String, kind::Union{DataCollectionKind,String} = data)
+    db::M.Database, project_code, dataset_code, kind::Union{DataCollectionKind,AbstractString} = data)
 
     proj = M.find_one(db["project"], bson(:code=>project_code))
     proj == nothing && error("no project exists with code=$proj")
