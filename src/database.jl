@@ -1,16 +1,30 @@
+using Sockets
+
 HOSTS=["mei-s4r-rabbit-mongo-stable0$i" for i = 1:3]  # Not work for i > 1 
+
+nextport=29030
 
 @enum PilrDbName QA BETA STAGING
 
 struct Database
     mongo_database::M.Database
-    tunnels::Vector{Base.Process}
     client
 end 
 
 
-tunnel(host, localport, user) =
-    run(Cmd(`ssh -NL $localport:$(host):27017 $user@jenkins.pilrhealth.com`), wait=false) 
+function starttunnel(host, localport, user)
+    try
+        s = connect("localhost", localport)
+        close(s)
+        @info "reusing tunnel" host localport user
+    catch e
+        @info "got" e
+        @info "starting tunnel" host localport user
+    
+        run(Cmd(`ssh -NTL $localport:$(host):27017 $user@jenkins.pilrhealth.com`), wait=false) 
+    end
+    Nothing
+end
 
 """
     database(jenkins_user, db_name, db_password [, localport = 29030 ])
@@ -29,7 +43,9 @@ julia> Mongoc.count_documents(db["project"])
 """
 function database(jenkins_user, db_name::String, db_password; localport = 29030, use_replset = false) :: Database
     hosts = use_replset ? HOSTS : HOSTS[1:1]
-    tunnels = [ tunnel(host, localport + i, jenkins_user) for (i, host) in enumerate(hosts) ]
+    for (i, host) in enumerate(hosts)
+        starttunnel(host, localport + i, jenkins_user)
+    end
     url = "mongodb://$db_name-user:$db_password@" * 
           join(["localhost:$(localport + i)" for i = eachindex(hosts)], ",") *
           "/$db_name";
@@ -39,13 +55,15 @@ function database(jenkins_user, db_name::String, db_password; localport = 29030,
     else
         client = M.Client(url)
     end
-    for i = 1:5
+    return Database(client[db_name], client)
+    for i = 1:10
         try
             r = M.ping(client)
             if r["ok"] == 1.0
-                return Database(client[db_name], tunnels, client)
+                return Database(client[db_name], client)
             end
             @warn "Ping #$i:" r
+            sleep(2)
         catch ex
             @warn "Ping #$i failed" ex
         end
