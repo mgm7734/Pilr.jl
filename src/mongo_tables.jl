@@ -2,9 +2,6 @@ using DataStructures
 using SimpleTraits
 
 
-"""
-Any iteratable sequence of Dict{String,Any} can be DictTable
-"""
 @traitdef CanFlatten{T}
 
 
@@ -35,9 +32,12 @@ end
 """
     flatdict(cursor ; options)
 
-Any iteratable collection of Dict{String,Any} can be flat dict
+Convert an iteratable collection of nested Dict{String,Any} (such as a Cursor returned by
+[`Mongoc.find`](https://felipenoris.github.io/Mongoc.jl/stable/api/#Mongoc.find)) into a dictonary of equal length columns.
 
-Each fields whose value is a dictionary is replaced a field for every entry. The field names are the path.
+The returned dictionary can be converted to a DataFrame.
+
+Each field value that is a dictionary is replaced a field for every entry. The field names are the path.
 
 # Option Arguments
 

@@ -6,6 +6,11 @@ nextport=29030
 
 @enum PilrDbName QA BETA STAGING
 
+"""
+Wrap a [`Mongoc.Database`](https://felipenoris.github.io/Mongoc.jl/stable/api/#Database) and a
+[`Mongoc.Client`](https://felipenoris.github.io/Mongoc.jl/stable/api/#Client)
+
+"""
 struct Database
     mongo_database::M.Database
     client
@@ -27,9 +32,11 @@ function starttunnel(host, localport, user)
 end
 
 """
-    database(jenkins_user, db_name, db_password [, localport = 29030 ])
+    database(jenkins_user, db_name, db_password [, localport = $(nextport)]) => Database
 
-Construct a connect database.
+Return a [`Database`](@ref) connection.
+
+
 
 # Examples
 
@@ -41,7 +48,7 @@ julia> import Mongoc
 julia> Mongoc.count_documents(db["project"])
 1056
 """
-function database(jenkins_user, db_name::String, db_password; localport = 29030, use_replset = false) :: Database
+function database(jenkins_user, db_name, db_password; localport = 29030, use_replset = false) :: Database
     hosts = use_replset ? HOSTS : HOSTS[1:1]
     for (i, host) in enumerate(hosts)
         starttunnel(host, localport + i, jenkins_user)

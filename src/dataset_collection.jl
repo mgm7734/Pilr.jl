@@ -3,7 +3,7 @@
 """
     dataset_collection(db, project_code, dataset_code, [ data | rawData | deleted ])
 
-Return a mongo collection associated with a given PiLR dataset.
+Return a [`Mongoc.Collection`](https://felipenoris.github.io/Mongoc.jl/stable/api/#Collection) associated with a given PiLR dataset.
 
 # Examples
 

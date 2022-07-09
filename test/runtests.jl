@@ -1,10 +1,12 @@
 using Pilr
-using Test
+using Test, Documenter
 import Mongoc as M
 
 @testset "Pilr.jl" begin
 
-    
+    DocMeta.setdocmeta!(Pilr, :DocTestSetup, :(using Pilr); recursive=true)
+    doctest(Pilr)
+
     beq(a::M.BSON,b::M.BSON) = M.as_json(a) == M.as_json(b)
     beq(a,b) = beq(M.BSON(a), M.BSON(b))
     #beq(a,b) = a == b
@@ -93,5 +95,10 @@ import Mongoc as M
     #@testset "RemoteFile" begin
     #    RemoteFile("beta", "/var/log/upstart/tomcat.log-20220430.gz")
     #end
+    
+    # @testset "wrappers" begin
+    #     projcode=M.find_one(db["project"], :code=>"\$regex"=>"test")["code"]
+
+    # end
     
 end
