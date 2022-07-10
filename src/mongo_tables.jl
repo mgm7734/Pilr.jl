@@ -30,18 +30,20 @@ function _runreplace(f::Function, k::String, v)
 end
 
 """
-    flatdict(cursor ; options)
+    flatdict(cursor ; [separator = "!"])
 
-Convert an iteratable collection of nested Dict{String,Any} (such as a Cursor returned by
+Convert an iterable of nested Dict{String,Any} (such as a Cursor returned by
 [`Mongoc.find`](https://felipenoris.github.io/Mongoc.jl/stable/api/#Mongoc.find)) into a dictonary of equal length columns.
 
 The returned dictionary can be converted to a DataFrame.
 
 Each field value that is a dictionary is replaced a field for every entry. The field names are the path.
 
+Using "!" does not require quoting in Symbol names, so you can type `:metadata!pt` instead of `"metadata.pt"`.
+
 # Option Arguments
 
-- `separator` : path separator for flattened column names
+- `separator` : path separator for flattened column names. 
 - `replace` : either a vector of Pair{Symbol,Any} or a function (key, value) -> (key, value).
 - `order` : a vector of columns that should appear first.
 """

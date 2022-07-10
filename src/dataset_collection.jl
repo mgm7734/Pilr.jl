@@ -22,3 +22,6 @@ function dataset_collection(
 end
 dataset_collection(db::Database, project_code, dataset_code, kind = data) =
     dataset_collection(db.mongo_database, project_code, dataset_code, kind)
+
+
+SURVEY_DATA = "pilrhealth:mobile:survey_data"

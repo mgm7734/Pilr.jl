@@ -2,7 +2,8 @@ module Pilr
 
 import Mongoc as M
 
-export bson, O, database, dataset_collection, flatdict, CanFlatten, QA, BETA, STAGING, RemoteFile
+export bson, O, database, flatdict, CanFlatten, QA, BETA, STAGING, RemoteFile
+export dataset_collection, SURVEY_DATA
 
 debug(x) = begin println("debug>",x); x end
 
