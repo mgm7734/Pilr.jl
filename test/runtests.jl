@@ -4,9 +4,6 @@ import Mongoc as M
 
 @testset "Pilr.jl" begin
 
-    DocMeta.setdocmeta!(Pilr, :DocTestSetup, :(using Pilr); recursive=true)
-    doctest(Pilr)
-
     beq(a::M.BSON,b::M.BSON) = M.as_json(a) == M.as_json(b)
     beq(a,b) = beq(M.BSON(a), M.BSON(b))
     #beq(a,b) = a == b
@@ -100,5 +97,10 @@ import Mongoc as M
     #     projcode=M.find_one(db["project"], :code=>"\$regex"=>"test")["code"]
 
     # end
+    
+    @testset "doctests" begin
+        DocMeta.setdocmeta!(Pilr, :DocTestSetup, :(using Pilr); recursive=true)
+        doctest(Pilr)
+    end
     
 end
