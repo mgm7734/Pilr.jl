@@ -25,8 +25,10 @@ function starttunnel(host, localport, user)
     catch e
         @info "got" e
         @info "starting tunnel" host localport user
-    
-        run(Cmd(`ssh -NTL $localport:$(host):27017 $user@jenkins.pilrhealth.com`), wait=false) 
+
+        opts = split(get(ENV, "SSH_OPTS", ""), " ")
+
+        run(Cmd(`ssh $(opts) -NTL $localport:$(host):27017 $user@jenkins.pilrhealth.com`), wait=false) 
     end
     Nothing
 end
@@ -36,7 +38,9 @@ end
 
 Return a [`Database`](@ref) connection.
 
+# Options
 
+- `ssh_opts::AbstractVector{String}`: extra arguments for the `ssh` tunnel command. Example: `["-Fnone", ""-i/home/me/.ssh/alt_rsa"]`
 
 # Examples
 
@@ -48,7 +52,9 @@ julia> import Mongoc
 julia> Mongoc.count_documents(db["project"])
 1056
 """
-function database(jenkins_user, db_name, db_password; localport = 29030, use_replset = false) :: Database
+function database(jenkins_user, db_name, db_password;
+                  localport = 29030, use_replset = false, ssh_opts=[]
+                  ) :: Database
     hosts = use_replset ? HOSTS : HOSTS[1:1]
     for (i, host) in enumerate(hosts)
         starttunnel(host, localport + i, jenkins_user)
@@ -56,23 +62,24 @@ function database(jenkins_user, db_name, db_password; localport = 29030, use_rep
     url = "mongodb://$db_name-user:$db_password@" * 
           join(["localhost:$(localport + i)" for i = eachindex(hosts)], ",") *
           "/$db_name";
-    if use_replset
-        pool = M.ClientPool(url, max_size = 2)
-        client = M.Client(pool)
-    else
-        client = M.Client(url)
-    end
-    return Database(client[db_name], client)
+    #if use_replset
+    #    pool = M.ClientPool(url, max_size = 2)
+    #    client = M.Client(pool)
+    #else
+    #    client = M.Client(url)
+    #end
+    #return Database(client[db_name], client)
     for i = 1:10
         try
+            client = M.Client(url)
+            sleep(1)
             r = M.ping(client)
             if r["ok"] == 1.0
                 return Database(client[db_name], client)
             end
-            @warn "Ping #$i:" r
-            sleep(2)
+            @error "Ping #$i:" r
         catch ex
-            @warn "Ping #$i failed" ex
+            @error "Ping #$i failed" ex
         end
     end
     error("failed to connect")
