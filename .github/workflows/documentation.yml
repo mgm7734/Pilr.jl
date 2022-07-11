@@ -36,6 +36,6 @@ jobs:
           JENKINS_USER: mmendel
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # If authenticating with GitHub Actions token
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }} # If authenticating with SSH deploy key
-          SSH_OPTS: ${{ join('-Fnone -i', env.HOME, '/.ssh/id_rsa' }}
+          SSH_OPTS: ${{ join('-Fnone -i', env.HOME, '/.ssh/id_rsa') }}
 
         run: julia --project=docs/ docs/make.jl
