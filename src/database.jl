@@ -17,18 +17,26 @@ struct Database
 end 
 
 
-function starttunnel(host, localport, user)
+function starttunnel(host, localport, user; verbose=false)
     try
         s = connect("localhost", localport)
         close(s)
-        @info "reusing tunnel" host localport user
+        if verbose
+            @info "reusing tunnel" host localport user
+        end
     catch e
-        @info "got" e
-        @info "starting tunnel" host localport user
+        sshopts = if haskey(ENV, "SSH_OPTS")
+            split(get(ENV, "SSH_OPTS", ""), " ")
+        else
+            []
+        end
 
-        opts = split(get(ENV, "SSH_OPTS", ""), " ")
+        if verbose
+            @info "starting tunnel" host localport user sshopts
+        end
 
-        run(Cmd(`ssh $(opts) -NTL $localport:$(host):27017 $user@jenkins.pilrhealth.com`), wait=false) 
+        p = run(`ssh $(sshopts) -NTL $localport:$(host):27017 $user@jenkins.pilrhealth.com`, wait=false) 
+        atexit(()->kill(p))
     end
     Nothing
 end
@@ -53,11 +61,11 @@ julia> Mongoc.count_documents(db["project"])
 1056
 """
 function database(jenkins_user, db_name, db_password;
-                  localport = 29030, use_replset = false, ssh_opts=[]
+                  localport = 29030, use_replset = false, ssh_opts=[], verbose=false,
                   ) :: Database
     hosts = use_replset ? HOSTS : HOSTS[1:1]
     for (i, host) in enumerate(hosts)
-        starttunnel(host, localport + i, jenkins_user)
+        starttunnel(host, localport + i, jenkins_user; verbose)
     end
     url = "mongodb://$db_name-user:$db_password@" * 
           join(["localhost:$(localport + i)" for i = eachindex(hosts)], ",") *

@@ -21,17 +21,10 @@ to load the package.
 
 ## Examples
 
-```jldoctest
-julia> using Pilr, DataFrames, Mongoc
-
+```
+julia> using Mongoc
 julia> db = database(ENV["JENKINS_USER"], QA, ENV["MONGO_PASSWORD"]);
-┌ Info: reusing tunnel
-│   host = "mei-s4r-rabbit-mongo-stable01"
-│   localport = 29031
-└   user = "mmendel"
-
 julia> proj = Mongoc.find_one(db["project"], bson(:code=>"base_pilr_ema"));
-
 julia> Mongoc.aggregate(
          dataset_collection(db, proj["code"], SURVEY_DATA),
          bson([

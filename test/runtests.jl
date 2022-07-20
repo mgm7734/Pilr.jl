@@ -1,4 +1,4 @@
-using Pilr
+using Pilr, DataFrames
 using Test, Documenter
 import Mongoc as M
 
@@ -40,13 +40,6 @@ import Mongoc as M
     end
 
 
-    db = database(ENV["JENKINS_USER"], QA, ENV["MONGO_PASSWORD"])
-
-    @testset "dataset_collection" begin
-        applog = dataset_collection(db, "base_pilr_ema", "pilrhealth:mobile:app_log")
-        @test M.count_documents(applog) > 0
-    end
-
     @testset "flatdict" begin
         fakecursor = [
             bson(:meta=>bson(:id=>"1"),
@@ -57,6 +50,13 @@ import Mongoc as M
 
     end
         
+    db = database(ENV["JENKINS_USER"], QA, ENV["MONGO_PASSWORD"])
+
+    @testset "dataset_collection" begin
+        applog = dataset_collection(db, "base_pilr_ema", "pilrhealth:mobile:app_log")
+        @test M.count_documents(applog) > 0
+    end
+
     @testset "MongoTable flatdict" begin
         applog = dataset_collection(db, "base_pilr_ema", "pilrhealth:mobile:app_log")
         cursor() = M.find(applog, bson(), options=bson(limit=10))
@@ -88,7 +88,7 @@ import Mongoc as M
 
         @test flatdict(cursor()) != nothing
     end
-    
+
     #@testset "RemoteFile" begin
     #    RemoteFile("beta", "/var/log/upstart/tomcat.log-20220430.gz")
     #end
