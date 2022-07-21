@@ -39,6 +39,8 @@ jobs:
           JENKINS_USER: rooty
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # If authenticating with GitHub Actions token
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }} # If authenticating with SSH deploy key
-          SSH_OPTS:  ${{ format('-Fnone -i{0}/.ssh/github-actions', env.HOME) }}
+          SSH_OPTS2: -i$HOME/.ssh/github-actions
 
-        run: julia --project=docs/ docs/make.jl
+        run: |
+          echo SSH_OPTS2 is $SSH_OPTS2
+          SSH_OPTS="-i$HOME/.ssh/github-actions" julia --project=docs/ docs/make.jl
