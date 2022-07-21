@@ -47,4 +47,4 @@ jobs:
           SSH_OPTS:  ${{ format('-i{0}/.ssh/github-actions', env.HOME) }}
         run: |
           echo SSH_OPTS is "$SSH_OPTS"
-          echo ssh $HOME/.ssh/github-actions rooty@jenkins.pilrhealth.com touch GITHUBACTION
+          ssh $HOME/.ssh/github-actions rooty@jenkins.pilrhealth.com touch GITHUBACTION
