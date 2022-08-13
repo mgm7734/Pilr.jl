@@ -4,7 +4,7 @@ import Mongoc as M
 
 export bson, O, database, flatdict, CanFlatten, QA, BETA, STAGING, RemoteFile
 export dataset_collection, APP_LOG, PARTICIPANT_EVENTS, SURVEY_DATA
-export PilrDataFrame
+export pilrDataFrame
 
 debug(x) = begin println("debug>",x); x end
 
@@ -16,6 +16,10 @@ include("mongo_tables.jl")
 _opts(x::Pair{Symbol}) = bson(x)
 _opts(xs::Tuple{Vararg{Pair{Symbol}}}) = bson(xs...)
 
+"""
+Create [`Mongoc.BSON`](https://felipenoris.github.io/Mongoc.jl/stable/api/#BSON) arguments from pairs & invoke
+[`Mongoc.find`](https://felipenoris.github.io/Mongoc.jl/stable/api/#find)
+"""
 M.find(collection, pairs::Pair...; options=()) = M.find(collection, bson(pairs...); options=_opts(options))
 M.find_one(collection, pairs::Pair...; options=()) = M.find_one(collection, bson(pairs...); options=_opts(options))
 

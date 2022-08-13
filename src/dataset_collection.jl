@@ -1,4 +1,4 @@
-using DataFrames, Dates, TimeZones
+using DataFrames, Dates, Mongoc, TimeZones
 
 SURVEY_DATA = "pilrhealth:mobile:survey_data"
 APP_LOG = "pilrhealth:mobile:app_log"
@@ -43,7 +43,31 @@ DEFAULT_REMOVE=[
 ]
 
 """
-    PilrDataFrame(db, project_code, dataset_code, [ filter... ]; [ sort ] [ limit ])
+    pilrDataFrame(db, project_code, dataset_code, [ (field=>value)... ]; [ sort ] [ limit ])
+
+Fetch data froma PiLR dataset and convert it to a DataFrame with optional, common transformations.
+
+A convenience function for invoking
+```
+Mongoc.find(dataset_collection(...), ...) |> flatdict |> DataFrame
+```
+with common default projections and conversions.
+
+By default, it will project out the fields listed in `DEFAULT_REMOVE` and convert all DateTime fields to ZonedDateTime.
+
+# Arguments
+
+- `db::Union{Pilr.Database,Mongoc.Database}` - typically the result of [`Pilr.Database`](@ref)
+- `filter::Pair
+
+# Keyword arguments
+
+The following options are passed along to `Mongoc.find` with `bson` automatically applied.
+
+- projection
+- sort
+
+All other keyword arguments are passed on to [`Mongoc.find`](@ref).
 
 # TODO
 
@@ -52,7 +76,7 @@ DEFAULT_REMOVE=[
 # Examples
 
 ```jldoctest
-julia> df = PilrDataFrame(database(ENV["JENKINS_USER"], QA, ENV["MONGO_PASSWORD"]),
+julia> df = pilrDataFrame(database(ENV["JENKINS_USER"], QA, ENV["MONGO_PASSWORD"]),
                           "base_pilr_ema", APP_LOG,
                           "data.tag" => "SURVEY_QUEUE";
                           sort=:_id=>1, limit=1)
@@ -65,10 +89,11 @@ julia> df = PilrDataFrame(database(ENV["JENKINS_USER"], QA, ENV["MONGO_PASSWORD"
 
 ```
 """
-function PilrDataFrame(db, project_code, dataset_code, query::Pair...=[] ;
+function pilrDataFrame(db, project_code, dataset_code, query::Pair...=[] ;
                        projection=Dict(f=>0 for f in DEFAULT_REMOVE),
+                       sort=Dict(),
                        kw...)
-    options = bson(:projection => projection, kw...)
+    options = bson(:projection => projection, :sort=>sort, kw...)
     df = M.find(dataset_collection(db, project_code, dataset_code), bson(query...); options) |>
         flatdict |> DataFrame
     dt = df.localTimestamp .- df.metadata!timestamp
@@ -76,3 +101,5 @@ function PilrDataFrame(db, project_code, dataset_code, query::Pair...=[] ;
     df.timestamp = ZonedDateTime.(df.metadata!timestamp, zone; from_utc=true)
     select!(df, :timestamp, DataFrames.Not([:metadata!timestamp, :localTimestamp]), :)
 end
+
+Base.@deprecate PilrDataFrame(args...; kw...) pilrDataFrame(args...; kw...)

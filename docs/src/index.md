@@ -45,3 +45,9 @@ julia> Mongoc.aggregate(
 
 
 ```
+
+## [Index](@id main-index)
+
+```@index
+Pages = ["mongo.md"]
+```
