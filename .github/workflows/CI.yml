@@ -10,9 +10,11 @@ concurrency:
   # Cancel intermediate builds: only if it is a pull request build.
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
+
 jobs:
   sshkey:
     name: install shkey
+    runs-on: ubuntu-latest
     steps:
       # See https://zellwk.com/blog/github-actions-deploy/
       - name: install SSH key for mongo tunnel for tests
