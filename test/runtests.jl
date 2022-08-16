@@ -1,5 +1,5 @@
-using Pilr
-using Test
+using Pilr, DataFrames
+using Test, Documenter
 import Mongoc as M
 
 @testset "Pilr.jl" begin
@@ -15,39 +15,36 @@ import Mongoc as M
             @test beq(doc, M.BSON("""{ "a": 1, "b": { "c" : 3 }}"""))
         end
 
-        #@test beq(bson([1,2,3]), M.BSON(""" [1,2,3] """))
-        @test beq(bson([1,2,3]), [1,2,3])
-        @test beq(bson(:a => [1,2,3]), M.BSON(""" { "a" : [1,2,3]} """))
-        @test beq(
-            bson(:a => ( :b => [1,2], :c => 3, :d => (:e => "OK!") )),
-            M.BSON("""
-                { "a": { "b" : [1,2], "c": 3, "d": { "e" : "OK!"} } }
-            """)
-        )
-        @test beq(
-            [ O( "\$group" => O( :id => "\$metadata.pt" ) ),
-              O( "\$sort" =>  O( :a => -1 ) ) ],
-            [ M.BSON(raw"""{ "$group" : { "id" : "$metadata.pt" } }"""),
-              M.BSON(raw"""{ "$sort" : { "a" : -1 } }""") ] 
-        )
+        @testset "bson check bson($a) == BSON($b)" for (a,b) in [
+            ( (:a=>1, :b=>:x => :y),
+              """ {"a": 1, "b": {"x": "y"}} """),
+            ( :a => [1,2,3],
+              """ { "a" : [1,2,3]} """),
+            ( :a => ( :b => [1,:x=>:y], :c => 3, :d => :e => "OK!" ),
+              """
+              { "a": { "b" : [1,{"x": "y"}], "c": 3, "d": { "e" : "OK!"} } }
+              """),
+            ( [1,2,3],
+              [1,2,3] ),
+            ( [ "\$group"=>(:id=>"\$metadata.pt", :foo=>"\$a.foo"),
+                "\$sort" =>:a=>-1 ],
+             raw"""
+              [ {"$group": {"id": "$metadata.pt", "foo": "$a.foo"}},
+                {"$sort": {"a": -1}} ]
+             """),
+            ( [ +:group=>(:_id=>+:metadata!pt, :foo=>+:a!foo),
+                "\$sort" =>:a!bad!!!c=>-1 ],
+             raw"""
+              [ {"$group": {"_id": "$metadata.pt", "foo": "$a.foo"}},
+                {"$sort": {"a.bad!.c": -1}} ]
+             """),
+            ]
+            @test M.as_json(bson(a)) == M.as_json(M.BSON(b))
 
-        @test beq(
-            bson([ ( "\$group" => ( :id => "\$metadata.pt",), ),
-                   ( "\$sort" =>  ( :a => -1, ), )
-                   ]),
-            [ M.BSON(raw"""{ "$group" : { "id" : "$metadata.pt" } }"""),
-              M.BSON(raw"""{ "$sort" : { "a" : -1 } }""") ] 
-        )
-
+        end
+        @test M.as_json(bson(code=:pt1, project=1234)) == M.as_json(M.BSON("""{ "code": "pt1", "project": 1234 }"""))
     end
 
-
-    db = database(ENV["JENKINS_USER"], QA, ENV["MONGO_PASSWORD"])
-
-    @testset "dataset_collection" begin
-        applog = dataset_collection(db, "base_pilr_ema", "pilrhealth:mobile:app_log")
-        @test M.count_documents(applog) > 0
-    end
 
     @testset "flatdict" begin
         fakecursor = [
@@ -59,6 +56,13 @@ import Mongoc as M
 
     end
         
+    db = database(ENV["JENKINS_USER"], QA, ENV["MONGO_PASSWORD"])
+
+    @testset "dataset_collection" begin
+        applog = dataset_collection(db, "base_pilr_ema", "pilrhealth:mobile:app_log")
+        @test M.count_documents(applog) > 0
+    end
+
     @testset "MongoTable flatdict" begin
         applog = dataset_collection(db, "base_pilr_ema", "pilrhealth:mobile:app_log")
         cursor() = M.find(applog, bson(), options=bson(limit=10))
@@ -90,9 +94,19 @@ import Mongoc as M
 
         @test flatdict(cursor()) != nothing
     end
-    
+
     #@testset "RemoteFile" begin
     #    RemoteFile("beta", "/var/log/upstart/tomcat.log-20220430.gz")
     #end
+    
+    # @testset "wrappers" begin
+    #     projcode=M.find_one(db["project"], :code=>"\$regex"=>"test")["code"]
+
+    # end
+    
+    @testset "doctests" begin
+        DocMeta.setdocmeta!(Pilr, :DocTestSetup, :(using Pilr); recursive=true)
+        doctest(Pilr)
+    end
     
 end

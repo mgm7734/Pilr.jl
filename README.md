@@ -2,6 +2,14 @@
 
 Tools for working with PiLR data in Julia
 
+[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://mgm7734.github.io/Pilr.jl/stable)
+[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://mgm7734.github.io/Pilr.jl/dev)
+
+GitHub Actions : [![Build Status](https://github.com/mgm7734/Pilr.jl/workflows/CI/badge.svg)](https://github.com/mgm7734/Pilr.jl/actions?query=workflow%3ACI+branch%3Amaster)
+
+[![Coverage Status](https://coveralls.io/repos/mgm7734/Pilr.jl/badge.svg?branch=master)](https://coveralls.io/r/mgm7734/Pilr.jl?branch=master)
+[![codecov.io](http://codecov.io/github/mgm7734/Pilr.jl/coverage.svg?branch=master)](http://codecov.io/github/mgm7734/Pilr.jl?branch=master)
+
 
 ## Requirements
 
