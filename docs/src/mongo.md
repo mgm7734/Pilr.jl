@@ -12,6 +12,6 @@ Pilr.database
 Pilr.dataset_collection
 Pilr.Database
 Pilr.flatdict
-Pilr.PilrDataFrame
+Pilr.pilrDataFrame
 Mongoc.find
 ```
