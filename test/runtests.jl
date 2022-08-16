@@ -32,7 +32,13 @@ import Mongoc as M
               [ {"$group": {"id": "$metadata.pt", "foo": "$a.foo"}},
                 {"$sort": {"a": -1}} ]
              """),
-        ]
+            ( [ +:group=>(:_id=>+:metadata!pt, :foo=>+:a!foo),
+                "\$sort" =>:a!bad!!!c=>-1 ],
+             raw"""
+              [ {"$group": {"_id": "$metadata.pt", "foo": "$a.foo"}},
+                {"$sort": {"a.bad!.c": -1}} ]
+             """),
+            ]
             @test M.as_json(bson(a)) == M.as_json(M.BSON(b))
 
         end

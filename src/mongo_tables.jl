@@ -1,15 +1,15 @@
 using DataStructures
-using SimpleTraits
+using SimpleTraits: istrait, @traitdef, @traitimpl, @traitfn
+import SimpleTraits
 
+
+canFlatten(T) = istrait(SimpleTraits.BaseTraits.IsIterator{T}) && eltype(T) <: AbstractDict
 
 @traitdef CanFlatten{T}
-
 
 @traitimpl CanFlatten{M.Cursor}
 
 @traitimpl CanFlatten{T} <- canFlatten(T)
-canFlatten(T) = istrait(SimpleTraits.BaseTraits.IsIterator{T}) && eltype(T) <: AbstractDict
-
 
 function _runreplace(pairs::Vector, k, v) where {T <: Union{Symbol,Nothing}}
     if k == nothing

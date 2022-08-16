@@ -1,4 +1,5 @@
-using DataFrames, Dates, Mongoc, TimeZones
+using Dates, Mongoc, TimeZones
+import DataFrames as DF
 
 SURVEY_DATA = "pilrhealth:mobile:survey_data"
 APP_LOG = "pilrhealth:mobile:app_log"
@@ -33,8 +34,8 @@ dataset_collection(db::Database, project_code, dataset_code, kind = data) =
     dataset_collection(db.mongo_database, project_code, dataset_code, kind)
 
 
-struct PilrDataFrame <: AbstractDataFrame
-    df::DataFrame
+struct PilrDataFrame <: DF.AbstractDataFrame
+    df::DF.DataFrame
 end
 
 
@@ -95,11 +96,11 @@ function pilrDataFrame(db, project_code, dataset_code, query::Pair...=[] ;
                        kw...)
     options = bson(:projection => projection, :sort=>sort, kw...)
     df = M.find(dataset_collection(db, project_code, dataset_code), bson(query...); options) |>
-        flatdict |> DataFrame
+        flatdict |> DF.DataFrame
     dt = df.localTimestamp .- df.metadata!timestamp
     zone = FixedTimeZone.("", getfield.(round.(dt, Second), :value))
     df.timestamp = ZonedDateTime.(df.metadata!timestamp, zone; from_utc=true)
-    select!(df, :timestamp, DataFrames.Not([:metadata!timestamp, :localTimestamp]), :)
+    DF.select!(df, :timestamp, DF.Not([:metadata!timestamp, :localTimestamp]), :)
 end
 
 Base.@deprecate PilrDataFrame(args...; kw...) pilrDataFrame(args...; kw...)

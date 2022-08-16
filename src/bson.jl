@@ -30,14 +30,16 @@ Mongoc.BSON with 2 entries:
   "b" => 2
 ```
 """
-bson(;nt...) = M.BSON((Pair(string(k), _bson(v)) for (k,v) in pairs(nt))...)
-bson(ps::Pair...) = M.BSON((Pair(string(k), _bson(v)) for (k,v) in ps)...)
+bson(;nt...) = M.BSON((Pair(bson(k), _bson(v)) for (k,v) in pairs(nt))...)
+bson(ps::Pair...) = M.BSON((Pair(bson(k), _bson(v)) for (k,v) in ps)...)
 bson(t::Tuple) = bson(t...)
 bson(d::AbstractDict) = bson(pairs(d)...)
-bson(s::Symbol)=string(s)
+bson(s::Symbol)=replace(string(s), "!!"=>"!", "!"=>".")
 bson(x) = x
 
 # Mongoc.aggregate should accept Array{BSON} but doesn't
 bson(a::AbstractVector) = M.BSON(map(bson, a))
 _bson(a::AbstractVector) = map(bson, a)
 _bson(x) = bson(x)
+
+ Base.:(+)(s::Symbol) =  raw"$" * bson(s)
