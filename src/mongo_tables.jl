@@ -47,7 +47,9 @@ Using "!" does not require quoting in Symbol names, so you can type `:metadata!p
 - `replace` : either a vector of Pair{Symbol,Any} or a function (key, value) -> (key, value).
 - `order` : a vector of columns that should appear first.
 """
-@traitfn flatdict(cursor::::CanFlatten; kws...) = _flatdict(cursor; kws...)
+#@traitfn flatdict(cursor::::CanFlatten; kws...) = _flatdict(cursor; kws...)
+# this is handled by Tables implementation
+flatdict(x) = x
 
 function _flatdict(
     cursor; 

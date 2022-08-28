@@ -21,27 +21,29 @@ to load the package.
 
 ## Examples
 
-```
-julia> using Mongoc
+```jltest
+julia> using Pilr
+julia> using Pilr.MongoDataFrames
 julia> db = database(ENV["JENKINS_USER"], QA, ENV["MONGO_PASSWORD"]);
-julia> proj = Mongoc.find_one(db["project"], bson(:code=>"base_pilr_ema"));
-julia> Mongoc.aggregate(
-         dataset_collection(db, proj["code"], SURVEY_DATA),
-         bson([
-           "\$match" => "data.event_type" => "survey_submitted",
-           "\$limit" => 1000,
-           "\$group" => (:_id => "\$metadata.pt", :surveys_submitted=>"\$sum"=>1)
-         ])) |> 
-         flatdict |> DataFrame |> df->first(df,5)
-5×2 DataFrame
- Row │ _id          surveys_submitted 
-     │ String       Int64             
-─────┼────────────────────────────────
-   1 │ mei01                        7
-   2 │ amios-01                    14
-   3 │ sbmeitest01                  2
-   4 │ pb112020                     1
-   5 │ amandroid                   15
+julia> proj = find(db["project"], :code=>"base_pilr_ema")
+julia> aggregate(dataset_collection(db, proj.code[1], SURVEY_DATA),
+                 [
+                   +:match => :data!event_type => "survey_submitted",
+                   +:limit => 1000,
+                   +:group => (:_id => +:metadata!pt,
+                               :surveys_submitted => +:sum => 1,
+                               :t => +:max => +:metadata!timestamp),
+                   +:limit=>5
+                 ])
+5×3 DataFrame
+ Row │ _id          surveys_submitted  t                   
+     │ String       Int64              DateTime            
+─────┼─────────────────────────────────────────────────────
+   1 │ mei01                        7  2022-06-08T12:22:05
+   2 │ amios-01                    14  2021-10-14T15:42:12
+   3 │ sbmeitest01                  2  2022-04-20T16:27:50
+   4 │ pb112020                     1  2021-03-16T19:29:57
+   5 │ amandroid                   15  2021-02-01T05:09:47
 
 
 ```

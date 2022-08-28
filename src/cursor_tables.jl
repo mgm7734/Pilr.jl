@@ -1,23 +1,17 @@
 using Tables
 
-Tables.istable(::M.Cursor) = true
-
-Tables.rowaccess(::M.Cursor) = true
-
-struct MongoRowIterator
-    cursor::M.Cursor
+struct FlatteningDictIterator{T}
+    iterator::T
 end
 
-struct MongoRow
+struct FlattenedRow
     pairs
 end
 
-Tables.rows(c::M.Cursor) = MongoRowIterator(c)
-
 separator = "!"
 
-function Base.iterate(itr::MongoRowIterator, state = nothing)
-    r = iterate(itr.cursor, state)
+function Base.iterate(x::FlatteningDictIterator, state = nothing)
+    r = iterate(x.iterator, state)
     r === nothing && return
     doc, newstate = r
     pairs = []
@@ -42,17 +36,17 @@ function Base.iterate(itr::MongoRowIterator, state = nothing)
 
     pushpathvalue("", doc)
 
-    (MongoRow(pairs), newstate)
+    (FlattenedRow(pairs), newstate)
 end
 
 
-Base.IteratorSize(::Type{MongoRowIterator}) = Base.SizeUnknown()
-Base.IteratorEltype(::Type{MongoRowIterator}) = Base.HasEltype()
-Base.eltype(::Type{MongoRowIterator}) = MongoRow
+Base.IteratorSize(::Type{<:FlatteningDictIterator}) = Base.SizeUnknown()
+Base.IteratorEltype(::Type{<:FlatteningDictIterator}) = Base.HasEltype()
+Base.eltype(::Type{<:FlatteningDictIterator}) = FlattenedRow
 
-Tables.getcolumn(row::MongoRow, i::Int) = row.pairs[i].value
+Tables.getcolumn(row::FlattenedRow, i::Int) = row.pairs[i].value
 
-function Tables.getcolumn(row::MongoRow, nm::Symbol) 
+function Tables.getcolumn(row::FlattenedRow, nm::Symbol) 
     for p in row.pairs
         if p.path == nm
             return p.value
@@ -61,4 +55,13 @@ function Tables.getcolumn(row::MongoRow, nm::Symbol)
     return missing
 end
 
-Tables.columnnames(row::MongoRow) = map(first, row.pairs)
+Tables.columnnames(row::FlattenedRow) = map(first, row.pairs)
+
+#### Mongoc.Cursor
+
+Tables.istable(::M.Cursor) = true
+
+Tables.rowaccess(::M.Cursor) = true
+
+Tables.rows(c::M.Cursor) = FlatteningDictIterator(c)
+

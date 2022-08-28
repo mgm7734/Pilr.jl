@@ -1,6 +1,7 @@
 using Documenter, Mongoc, Pilr
 
-DocMeta.setdocmeta!(Pilr, :DocTestSetup, :(using Pilr, DataFrames, Dates, Mongoc, TimeZones); recursive=true)
+DocMeta.setdocmeta!(Pilr, :DocTestSetup,
+                    :(using Pilr, Pilr.MongoDataFrames, Dates, Mongoc, TimeZones;import DataFrames); recursive=true)
 
 makedocs(
     modules = [Pilr],

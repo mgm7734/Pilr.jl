@@ -25,37 +25,37 @@ import Mongoc as M
         @test M.count_documents(applog) > 0
     end
 
-    @testset "MongoTable flatdict" begin
-        applog = dataset_collection(db, "base_pilr_ema", "pilrhealth:mobile:app_log")
-        cursor() = M.find(applog, bson(), options=bson(limit=10))
+    # @testset "MongoTable flatdict" begin
+    #     applog = dataset_collection(db, "base_pilr_ema", "pilrhealth:mobile:app_log")
+    #     cursor() = M.find(applog, bson(), options=bson(limit=10))
 
-        table = flatdict(cursor(),
-                        replace=[:_id => nothing, :metadata!timestamp => :t],
-                        order=[:t])
+    #     table = flatdict(cursor(),
+    #                     replace=[:_id => nothing, :metadata!timestamp => :t],
+    #                     order=[:t])
 
-        @test :_id ∉ keys(table)
-        @test first(keys(table)) == :t
+    #     @test :_id ∉ keys(table)
+    #     @test first(keys(table)) == :t
 
-        #cursor = M.find(applog, bson(), options=bson(limit=10))
-        function myreplacer(name, value)
-            if name == "_id"
-                nothing, nothing
-            elseif name == "metadata!timestamp" && value !== missing
-                "t", string(value)
-            else
-                name, value
-            end
-        end
-        table2 = flatdict(cursor(),
-                         replace=myreplacer,
-                         order=[:t])
+    #     #cursor = M.find(applog, bson(), options=bson(limit=10))
+    #     function myreplacer(name, value)
+    #         if name == "_id"
+    #             nothing, nothing
+    #         elseif name == "metadata!timestamp" && value !== missing
+    #             "t", string(value)
+    #         else
+    #             name, value
+    #         end
+    #     end
+    #     table2 = flatdict(cursor(),
+    #                      replace=myreplacer,
+    #                      order=[:t])
 
-        @test :_id ∉ keys(table2)
-        @test first(keys(table2)) == :t
-        @test table2[:t] == string.(table[:t])
+    #     @test :_id ∉ keys(table2)
+    #     @test first(keys(table2)) == :t
+    #     @test table2[:t] == string.(table[:t])
 
-        @test flatdict(cursor()) != nothing
-    end
+    #     @test flatdict(cursor()) != nothing
+    # end
 
     #@testset "RemoteFile" begin
     #    RemoteFile("beta", "/var/log/upstart/tomcat.log-20220430.gz")
@@ -67,7 +67,8 @@ import Mongoc as M
     # end
     
     @testset "doctests" begin
-        DocMeta.setdocmeta!(Pilr, :DocTestSetup, :(using Pilr); recursive=true)
+        DocMeta.setdocmeta!(Pilr, :DocTestSetup,
+                    :(using Pilr, Pilr.MongoDataFrames, Dates, Mongoc, TimeZones;import DataFrames); recursive=true)
         doctest(Pilr)
     end
     
