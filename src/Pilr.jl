@@ -11,7 +11,8 @@ debug(x) = begin println("debug>",x); x end
 include("bson.jl")
 include("database.jl")
 include("mongo_tables.jl")
-
+include("cursor_tables.jl")
+include("MongoDataFrames.jl")
 
 _opts(x::Pair{Symbol}) = bson(x)
 _opts(xs::Tuple{Vararg{Pair{Symbol}}}) = bson(xs...)

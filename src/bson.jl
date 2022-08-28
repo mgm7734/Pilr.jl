@@ -42,4 +42,5 @@ bson(a::AbstractVector) = M.BSON(map(bson, a))
 _bson(a::AbstractVector) = map(bson, a)
 _bson(x) = bson(x)
 
- Base.:(+)(s::Symbol) =  raw"$" * bson(s)
+Base.:(~)(s::Symbol) =  raw"$" * bson(s)
+Base.:(+)(s::Symbol) = ~s
