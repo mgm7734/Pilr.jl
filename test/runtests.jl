@@ -67,7 +67,8 @@ import Mongoc as M
     # end
     
     @testset "doctests" begin
-        DocMeta.setdocmeta!(Pilr, :DocTestSetup, :(using Pilr); recursive=true)
+        DocMeta.setdocmeta!(Pilr, :DocTestSetup,
+                    :(using Pilr, Pilr.MongoDataFrames, Dates, Mongoc, TimeZones;import DataFrames); recursive=true)
         doctest(Pilr)
     end
     
