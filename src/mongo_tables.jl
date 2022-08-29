@@ -49,7 +49,7 @@ Using "!" does not require quoting in Symbol names, so you can type `:metadata!p
 """
 #@traitfn flatdict(cursor::::CanFlatten; kws...) = _flatdict(cursor; kws...)
 # this is handled by Tables implementation
-flatdict(x) = x
+Base.@deprecate flatdict(x) x
 
 function _flatdict(
     cursor; 

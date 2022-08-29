@@ -1,4 +1,4 @@
-using Dates, Mongoc, TimeZones
+using Dates, Mongoc, TimeZones, Pilr.MongoDataFrames
 import DataFrames as DF
 
 SURVEY_DATA = "pilrhealth:mobile:survey_data"
@@ -40,7 +40,7 @@ end
 
 
 DEFAULT_REMOVE=[
-    :_id, :rawId, :schemaVersion, :dateReceived, :dataSource, :dataSourceId, :dateProcessed, :timestampString, "metadata.id"
+    :_id, :rawId, :schemaVersion, :dateReceived, :dataSource, :dataSourceId, :dateProcessed, :timestampString, :metadata!id
 ]
 
 """
@@ -80,7 +80,7 @@ All other keyword arguments are passed on to [`Mongoc.find`](@ref).
 julia> df = pilrDataFrame(database(ENV["JENKINS_USER"], QA, ENV["MONGO_PASSWORD"]),
                           "base_pilr_ema", APP_LOG,
                           "data.tag" => "SURVEY_QUEUE";
-                          sort=:_id=>1, limit=1)
+                          :sort=>:_id=>1, :limit=>1)
 1×8 DataFrame
  Row │ timestamp                  metadata!pt  data!tag      data!msg          ⋯
      │ ZonedDat…                  String       String        String            ⋯
@@ -90,13 +90,11 @@ julia> df = pilrDataFrame(database(ENV["JENKINS_USER"], QA, ENV["MONGO_PASSWORD"
 
 ```
 """
-function pilrDataFrame(db, project_code, dataset_code, query::Pair...=[] ;
-                       projection=Dict(f=>0 for f in DEFAULT_REMOVE),
-                       sort=Dict(),
-                       kw...)
-    options = bson(:projection => projection, :sort=>sort, kw...)
-    df = M.find(dataset_collection(db, project_code, dataset_code), bson(query...); options) |>
-        flatdict |> DF.DataFrame
+function pilrDataFrame(db, project_code, dataset_code, query::Pair...=[]; kw...)
+    if !(:projection in  keys(kw))
+        kw = (kw..., :projection=>Dict(f=>0 for f in DEFAULT_REMOVE))
+    end
+    df = find(dataset_collection(db, project_code, dataset_code), query...; kw...)
     dt = df.localTimestamp .- df.metadata!timestamp
     zone = FixedTimeZone.("", getfield.(round.(dt, Second), :value))
     df.timestamp = ZonedDateTime.(df.metadata!timestamp, zone; from_utc=true)
