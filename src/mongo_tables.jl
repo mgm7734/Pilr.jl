@@ -1,8 +1,9 @@
 using DataStructures
 using SimpleTraits: istrait, @traitdef, @traitimpl, @traitfn
-import SimpleTraits
+#import SimpleTraits
 
 
+#=
 canFlatten(T) = istrait(SimpleTraits.BaseTraits.IsIterator{T}) && eltype(T) <: AbstractDict
 
 @traitdef CanFlatten{T}
@@ -28,6 +29,7 @@ end
 function _runreplace(f::Function, k::String, v)
     f(k, v)
 end
+=#
 
 """
     flatdict(cursor ; [separator = "!"])
@@ -49,7 +51,7 @@ Using "!" does not require quoting in Symbol names, so you can type `:metadata!p
 """
 #@traitfn flatdict(cursor::::CanFlatten; kws...) = _flatdict(cursor; kws...)
 # this is handled by Tables implementation
-Base.@deprecate flatdict(x) x
+Base.@deprecate flatdict(x) FlatteningDictIterator(x) 
 
 function _flatdict(
     cursor; 

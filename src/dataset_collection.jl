@@ -1,5 +1,4 @@
-using Dates, Mongoc, TimeZones, Pilr.MongoDataFrames
-import DataFrames as DF
+using Dates, DataFrames, Mongoc, TimeZones, Pilr, Pilr.MongoDataFrames
 
 SURVEY_DATA = "pilrhealth:mobile:survey_data"
 APP_LOG = "pilrhealth:mobile:app_log"
@@ -34,9 +33,9 @@ dataset_collection(db::Database, project_code, dataset_code, kind = data) =
     dataset_collection(db.mongo_database, project_code, dataset_code, kind)
 
 
-struct PilrDataFrame <: DF.AbstractDataFrame
-    df::DF.DataFrame
-end
+# struct PilrDataFrame <: AbstractDataFrame
+    # df::DataFrame
+# end
 
 
 DEFAULT_REMOVE=[
@@ -90,15 +89,18 @@ julia> df = pilrDataFrame(database(ENV["JENKINS_USER"], QA, ENV["MONGO_PASSWORD"
 
 ```
 """
-function pilrDataFrame(db, project_code, dataset_code, query::Pair...=[]; kw...)
+function pilrDataFrame(db, project_code, dataset_code, query::Pair...; kw...)
     if !(:projection in  keys(kw))
         kw = (kw..., :projection=>Dict(f=>0 for f in DEFAULT_REMOVE))
     end
     df = find(dataset_collection(db, project_code, dataset_code), query...; kw...)
+    if nrow(df) == 0
+        return df
+    end
     dt = df.localTimestamp .- df.metadata!timestamp
     zone = FixedTimeZone.("", getfield.(round.(dt, Second), :value))
     df.timestamp = ZonedDateTime.(df.metadata!timestamp, zone; from_utc=true)
-    DF.select!(df, :timestamp, DF.Not([:metadata!timestamp, :localTimestamp]), :)
+    select!(df, :timestamp, Not([:metadata!timestamp, :localTimestamp]), :)
 end
 
-Base.@deprecate PilrDataFrame(args...; kw...) pilrDataFrame(args...; kw...)
+#Base.@deprecate PilrDataFrame(args...; kw...) pilrDataFrame(args...; kw...)
