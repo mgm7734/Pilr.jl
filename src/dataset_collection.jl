@@ -23,9 +23,9 @@ function dataset_collection(
     db::M.Database, project_code, dataset_code, kind::Union{DataCollectionKind,AbstractString} = data)
 
     proj = M.find_one(db["project"], bson(:code=>project_code))
-    proj == nothing && error("no project exists with code=$proj")
+    proj === nothing && error("no project exists with code=$proj")
     dataset = M.find_one(db["dataset"], bson(code=dataset_code, project=proj["_id"]))
-    dataset == nothing && error("project $project_code has no dataset with code '$dataset_code' ")
+    dataset === nothing && error("project $project_code has no dataset with code '$dataset_code' ")
     db["$(dataset["_id"]):$(kind)"]
 end
 

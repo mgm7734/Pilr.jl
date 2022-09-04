@@ -2,9 +2,10 @@ module Pilr
 
 import Mongoc as M
 
-export bson, O, database, flatdict, CanFlatten, QA, BETA, STAGING, RemoteFile
+export bson, O, database, CanFlatten, QA, BETA, STAGING, RemoteFile
 export dataset_collection, APP_LOG, PARTICIPANT_EVENTS, SURVEY_DATA
 export pilrDataFrame
+export remotefile, parse_tomcatlog
 
 debug(x) = begin println("debug>",x); x end
 
@@ -13,6 +14,7 @@ include("database.jl")
 include("mongo_tables.jl")
 include("cursor_tables.jl")
 include("MongoDataFrames.jl")
+include("remote_file.jl")
 
 _opts(x::Pair{Symbol}) = bson(x)
 _opts(xs::Tuple{Vararg{Pair{Symbol}}}) = bson(xs...)

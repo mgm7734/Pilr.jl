@@ -68,7 +68,7 @@ function _flatdict(
 
     function pushvalue!(key, dict::AbstractDict, prefix)
         key, dict = _runreplace(replace, "$prefix$key", dict)
-        if key == nothing
+        if key === nothing
             return
         end
         for (k, v) in dict
@@ -77,7 +77,7 @@ function _flatdict(
     end
     function pushvalue!(key, value, prefix)
         key, value = _runreplace(replace, "$prefix$key", value)
-        if key == nothing
+        if key === nothing
             return
         end
         key = Symbol(key)
