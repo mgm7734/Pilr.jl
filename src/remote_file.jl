@@ -1,51 +1,23 @@
+using DataStructures
 using Dates
 using TimeZones
 
-#=
-struct RemoteFile
-    host::String
-    path::String
-    cachedir::String
-end
-
-function RemoteFile(host, path; cachedir = "$(ENV["HOME"])/.cache/pilr-remotefile", ignorecache=false)
-    self = RemoteFile(host, path, cachedir)
-    localpath = cachepath(self)
-    if ignorecache || !isfile(localpath)
-        mkpath(dirname(localpath))
-        println("DEBUG>>> ssh $host sudo cat $path")
-        run(pipeline(`ssh $host "sudo cat $path"`, stdout=localpath))
-    end
-    self
-end
-
-cachepath(r::RemoteFile) = joinpath(r.cachedir, r.host, basename(r.path))
-
-=#
 """
-    remotefile(host, path; gunzip=true) -> IO
+    remotelines(host, path; gunzip=true)
 
-# Examples
+Create an iterator over lines in a remote file.
 
-```
-julia> x=Pilr.remotefile("qa", "/var/log/upstart/tomcat.log");
+If the `gunzip` is true and the path ends with ".gz", it will be decompressed.
 
-julia> first(readlines(x), 5)
-5-element Vector{String}:
- "2022-09-03 07:19:23,588 [495,AN" ⋯ 34 bytes ⋯ "ilrhealth.ActivityFilters  - >>"
- "2022-09-03 07:19:23,589 [496,AN" ⋯ 34 bytes ⋯ "ilrhealth.ActivityFilters  - >>"
- "2022-09-03 07:19:23,592 [497,AN" ⋯ 34 bytes ⋯ "ilrhealth.ActivityFilters  - >>"
- "2022-09-03 07:19:23,596 [498,AN" ⋯ 34 bytes ⋯ "ilrhealth.ActivityFilters  - >>"
- "2022-09-03 07:19:23,603 [499,AN" ⋯ 34 bytes ⋯ "ilrhealth.ActivityFilters  - >>"
-```
+Intended for use with `parse_tomcatlog` and `parse_nginxlog`;
 """
-function remotefile(host, path; gunzip=true) 
+function remotelines(host, path; gunzip=true) 
     sshopts=split(get(ENV, "SSH_OPTS", ""), "")
     cmds = [`ssh $(host) $(sshopts) "sudo cat $(path)"`]
     if endswith(path, ".gz") && gunzip
         push!(cmds, `zcat`)
     end
-    pipeline(cmds...)
+    pipeline(cmds...) |> eachline 
 end
 
 """
@@ -59,8 +31,32 @@ There are 3 kinds of in the upstart/tomcat.log:
 
 The 1st kind are returned as rows in `servletdf` with all the fields parsed into columns. [TODO: describe columns]
 The `rawdf` has a row for each input line containing the original text plus...[TODO]
+
+# Example
+
+```jldoctest
+julia> lines = [
+       "2022-09-02 06:44:08,475 [307,ANONYMOUS,login/auth] INFO  pilrhealth.ActivityFilters  - >>",
+       "2022-09-02 06:44:08,477 [307,ANONYMOUS,login/auth] INFO  pilrhealth.ActivityFilters  - << action processed in 2 millis"
+       ];
+
+julia> parse_tomcatlog(lines)
+(2×8 DataFrame
+ Row │ reqid     time                           user       action      level   ⋯
+     │ Tuple…    ZonedDat…                      SubStrin…  SubStrin…   SubStri ⋯
+─────┼──────────────────────────────────────────────────────────────────────────
+   1 │ (307, 1)  2022-09-02T06:44:08.475-05:00  ANONYMOUS  login/auth  INFO    ⋯
+   2 │ (307, 1)  2022-09-02T06:44:08.477-05:00  ANONYMOUS  login/auth  INFO
+                                                               4 columns omitted, 2×4 DataFrame
+ Row │ id     ref    time                           line                       ⋯
+     │ Int64  Int64  ZonedDat…                      String                     ⋯
+─────┼──────────────────────────────────────────────────────────────────────────
+   1 │     1      1  2022-09-02T06:44:08.475-05:00  2022-09-02 06:44:08,475 [3 ⋯
+   2 │     2      2  2022-09-02T06:44:08.477-05:00  2022-09-02 06:44:08,477 [3
+                                                                1 column omitted)
+```
 """
-function parse_tomcatlog(stream::IO)
+function parse_tomcatlog(lines)
     parseTime(str, dateformat) = ZonedDateTime(DateTime(str, dateformat), tz"America/Chicago")
     
     # 2022-04-29 06:43:44,746 [315,ANONYMOUS,login/auth] INFO  pilrhealth.ActivityFilters  - >>
@@ -83,7 +79,7 @@ function parse_tomcatlog(stream::IO)
     webapp = OrderedDict()
     raw = OrderedDict()
     ref = 0
-    for (id, line) in enumerate(eachline(stream))
+    for (id, line) in enumerate(lines)
         local m = nothing
         try
             if (m = match(webapppat, line)) !== nothing
@@ -116,8 +112,56 @@ function parse_tomcatlog(stream::IO)
     df = combine(groupby(df, :worker)) do sdf
         t = transform(sdf, [:worker, :startsreq]=>((w,s)->tuple.(w, cumsum(s)))=>:reqid)
     end
-    select!(df, :reqid, :time, Not([:date, :worker, :startsreq]))
+    select!(df, :reqid, :time, DataFrames.Not([:date, :worker, :startsreq]))
     df, DataFrame(raw)
 end
 
-parse_tomcatlog(cmd::Base.AbstractCmd) = cmd |> open |> parse_tomcatlog
+"""
+    parse_nginxlog(lines) => DataFrame
+
+Creates a dataframe from nginx log file lines in NCSA Common Log format.
+
+# Examples
+
+```jldoctest
+julia> lines = [
+       "54.245.168.29 - - [26/Apr/2022:17:12:11 -0500] \\"GET /login/auth HTTP/1.1\\" 200 5603 \\"-\\" \\"Amazon-Route53-Health-Check-Service (ref b1f0ca2a-3996-40b1-8f2e-6cf7267efa54; report http://amzn.to/1vsZADi)\\"", 
+       "128.148.225.62 - - [26/Apr/2022:17:12:12 -0500] \\"POST /project/bluetooth_demo/emaOtsConfig/updateSurveyRules?config=82003&cardstack=Morning_Survey HTTP/1.1\\" 302 0 \\"https://cloud.pilrhealth.com/project/bluetooth_demo/emaOtsConfig/editSurveyRules?config=82003&cardstack=Morning_Survey\\" \\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36\\""
+       ];
+
+julia> DataFrames.select(parse_nginxlog(lines), :status, :bytes, DataFrames.Not(:user))
+2×7 DataFrame
+ Row │ status  bytes  time                       remote_addr     request       ⋯
+     │ UInt16  Int64  ZonedDat…                  SubString…      SubString…    ⋯
+─────┼──────────────────────────────────────────────────────────────────────────
+   1 │    200   5603  2022-04-26T17:12:11-05:00  54.245.168.29   GET /login/au ⋯
+   2 │    302      0  2022-04-26T17:12:12-05:00  128.148.225.62  POST /project
+                                                               3 columns omitted
+```
+"""
+function parse_nginxlog(lines)
+    # 54.245.168.29 - - [26/Apr/2022:17:12:11 -0500] "GET /login/auth HTTP/1.1" 200 5603 "-" "Amazon-Route53-Health-Check-Service (ref b1f0ca2a-3996-40b1-8f2e-6cf7267efa54; report http://amzn.to/1vsZADi)"
+    # NCSA Common log format
+    #    $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" "$http_x_forwarded_for"
+
+    pat = r"^(?<remote_addr>[^ ]+) - (?<user>[^ ]+) \[(?<time>[^\]]+)\] \"(?<request>[^\"]+)\" (?<status>[^ ]+) (?<bytes>[^ ]+) \"(?<referer>[^\"]+)\" \"(?<useragent>[^\"]+)\".*"
+    dateformat = dateformat"dd/uuu/yyyy:HH:MM:SS zzzz"
+
+    optstr(x) = x == "-" ? missing : x
+    parsers = [
+        :time => t -> ZonedDateTime(t, dateformat), 
+        :remote_addr => identity, 
+        :user => optstr,
+        :request => identity, 
+        :status => x -> parse(UInt16, x), 
+        :bytes => x -> parse(Int, x), 
+        :referer => optstr, 
+        :useragent => optstr
+    ]
+
+    DataFrame([ OrderedDict(k => p(m[string(k)])
+                     for m in [match(pat, line)] if m !== nothing
+                     for (k, p) in parsers) 
+                for line in lines
+              ])
+end

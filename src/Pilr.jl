@@ -5,7 +5,7 @@ import Mongoc as M
 export bson, O, database, CanFlatten, QA, BETA, STAGING, RemoteFile
 export dataset_collection, APP_LOG, PARTICIPANT_EVENTS, SURVEY_DATA
 export pilrDataFrame
-export remotefile, parse_tomcatlog
+export remotefile, parse_tomcatlog, parse_nginxlog
 
 debug(x) = begin println("debug>",x); x end
 
