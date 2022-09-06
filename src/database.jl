@@ -15,7 +15,15 @@ struct Database
     mongo_database::M.Database
     client
 end 
-
+"""
+Overload property access as shortcut for collections.
+"""
+Base.getproperty(db::Database, s::Symbol) = 
+    if s ∈ [:mongo_database, :client]
+        getfield(db, s)
+    else
+        db.mongo_database[string(s)]
+    end
 
 function starttunnel(host, localport, user; verbose=false)
     try
