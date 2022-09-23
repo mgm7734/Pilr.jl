@@ -6,6 +6,7 @@ export bson, O, database, CanFlatten, QA, BETA, STAGING, RemoteFile
 export dataset_collection, APP_LOG, PARTICIPANT_EVENTS, SURVEY_DATA
 export pilrDataFrame
 export remotefile, parse_tomcatlog, parse_nginxlog
+export surveyqueue, deviceinfo
 
 debug(x) = begin println("debug>",x); x end
 
@@ -15,6 +16,7 @@ include("mongo_tables.jl")
 include("cursor_tables.jl")
 include("MongoDataFrames.jl")
 include("remote_file.jl")
+include("compliance.jl")
 
 _opts(x::Pair{Symbol}) = bson(x)
 _opts(xs::Tuple{Vararg{Pair{Symbol}}}) = bson(xs...)

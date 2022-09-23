@@ -1,6 +1,7 @@
 module MongoDataFrames
 
-export aggregate, find
+# DataFrames also exports aggregate
+export aggr, aggregate, find
 
 using DataFrames: DataFrame
 using Pilr: bson
@@ -31,8 +32,11 @@ julia> find(db["project"], :code=>+:regex=>"^test"; :limit=>2) |>
 find(collection::M.AbstractCollection, pairs::Pair...; kw...) where T =
     M.find(collection, bson(pairs...); options=bson(kw)) |> DataFrame
 
+aggregate(collection::M.AbstractCollection, pipeline...; kw...) =
+    M.aggregate(collection, bson([pipeline...]); options=bson(kw)) |> DataFrame
+
 """
-    aggregate(collection, pipeline ; [ , option => value ])
+    aggr(collection, pipeline ; [ , option => value ])
 
 Short-hand syntax for invoking `Mongoc.aggreate` and converting result to a `DataFrame`.
 
@@ -43,7 +47,7 @@ julia> using Pilr, Pilr.MongoDataFrames
 
 julia> db = database(ENV["JENKINS_USER"], QA, ENV["MONGO_PASSWORD"]);
 
-julia> aggregate(dataset_collection(db, "base_pilr_ema", SURVEY_DATA),
+julia> aggr(dataset_collection(db, "base_pilr_ema", SURVEY_DATA),
                  [
                    +:match => :data!event_type => "survey_submitted",
                    +:limit => 1000,
@@ -61,7 +65,8 @@ julia> aggregate(dataset_collection(db, "base_pilr_ema", SURVEY_DATA),
 
 ```
 """
-aggregate(collection::M.AbstractCollection, pipeline; kw...) =
+aggr(collection::M.AbstractCollection, pipeline::AbstractVector; kw...) = 
     M.aggregate(collection, bson(pipeline); options=bson(kw)) |> DataFrame
 
+aggr(collection::M.AbstractCollection, pipeline...; kw...) = aggr(collection, [pipeline...], kw...)
 end
