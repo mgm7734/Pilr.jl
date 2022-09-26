@@ -91,7 +91,7 @@ julia> df = pilrDataFrame(database(ENV["JENKINS_USER"], QA, ENV["MONGO_PASSWORD"
 """
 function pilrDataFrame(db, project_code, dataset_code, query::Pair...; kw...)
     if !(:projection in  keys(kw))
-        kw = (kw..., :projection=>Dict(f=>0 for f in DEFAULT_REMOVE))
+        kw = (kw..., :projection=>default_projection())
     end
     df = find(dataset_collection(db, project_code, dataset_code), query...; kw...)
     if nrow(df) == 0
@@ -102,5 +102,7 @@ function pilrDataFrame(db, project_code, dataset_code, query::Pair...; kw...)
     df.timestamp = ZonedDateTime.(df.metadata!timestamp, zone; from_utc=true)
     select!(df, :timestamp, Not([:metadata!timestamp, :localTimestamp]), :)
 end
+
+default_projection() = Dict(f=>0 for f in DEFAULT_REMOVE)
 
 #Base.@deprecate PilrDataFrame(args...; kw...) pilrDataFrame(args...; kw...)

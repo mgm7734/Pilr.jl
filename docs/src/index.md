@@ -25,7 +25,7 @@ to load the package.
 julia> using Pilr
 julia> using Pilr.MongoDataFrames
 julia> db = database(ENV["JENKINS_USER"], QA, ENV["MONGO_PASSWORD"]);
-julia> proj = find(db["project"], :code=>"base_pilr_ema")
+julia> proj = find(db.project, :code=>"base_pilr_ema")
 julia> aggregate(dataset_collection(db, proj.code[1], SURVEY_DATA),
                  [
                    +:match => :data!event_type => "survey_submitted",
