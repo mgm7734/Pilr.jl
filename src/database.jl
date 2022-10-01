@@ -17,6 +17,11 @@ struct Database
 end 
 """
 Overload property access as shortcut for collections.
+
+```julia
+db.project == db["project"]
+```
+
 """
 Base.getproperty(db::Database, s::Symbol) = 
     if s ∈ [:mongo_database, :client]
