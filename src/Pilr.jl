@@ -9,6 +9,7 @@ export dataset_collection, pilrZonedTime, APP_LOG, NOTIFICATION_LOG, PARTICIPANT
 export pilrDataFrame
 export remotefile, parse_tomcatlog, parse_nginxlog
 export surveyqueue, deviceinfo
+export mfind
 
 include("bson.jl")
 include("database.jl")
@@ -17,6 +18,11 @@ include("cursor_tables.jl")
 include("MongoDataFrames.jl")
 include("remote_file.jl")
 include("compliance.jl")
+
+"""
+New name for [`MongoDataFrames.pilrfind`](@ref)
+"""
+mfind(args...; kw...) = MongoDataFrames.pilrfind(args...; kw...)
 
 _opts(x::Pair{Symbol}) = bson(x)
 _opts(xs::Tuple{Vararg{Pair{Symbol}}}) = bson(xs...)
