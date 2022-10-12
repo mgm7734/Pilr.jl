@@ -1,8 +1,9 @@
 using Dates, DataFrames, Mongoc, TimeZones, Pilr, Pilr.MongoDataFrames
 
-SURVEY_DATA = "pilrhealth:mobile:survey_data"
 APP_LOG = "pilrhealth:mobile:app_log"
+NOTIFICATION_LOG =  "pilrhealth:mobile:notification_log"
 PARTICIPANT_EVENTS= "pilrhealth:mobile:participant_events"
+SURVEY_DATA = "pilrhealth:mobile:survey_data"
 
 @enum DataCollectionKind data rawData deleted
 
@@ -97,10 +98,39 @@ function pilrDataFrame(db, project_code, dataset_code, query::Pair...; kw...)
     if nrow(df) == 0
         return df
     end
-    dt = df.localTimestamp .- df.metadata!timestamp
-    zone = FixedTimeZone.("", getfield.(round.(dt, Second), :value))
-    df.timestamp = ZonedDateTime.(df.metadata!timestamp, zone; from_utc=true)
+    df.timestamp = pilrZonedTime(df)
     select!(df, :timestamp, Not([:metadata!timestamp, :localTimestamp]), :)
+end
+
+"""
+    pilrZonedTime(row, field = :metadata!timestamp)
+
+Convert a Mongo date field to ZonedDateTime using the metadata!timestamp and localTimestamp to
+determine the offset.
+"""
+function pilrZonedTime(row, field = "metadata!timestamp")
+    dt = row.localTimestamp - row.metadata!timestamp
+    zone = FixedTimeZone("", getfield(round.(dt, Second), :value))
+    ZonedDateTime(row[field], zone; from_utc=true)
+end
+pilrZonedTime(df::AbstractDataFrame, field = "metadata!timestamp") = map(eachrow(df)) do row
+    pilrZonedTime(row)
+end
+    #dt = row.localTimestamp .- row.metadata!timestamp
+    #zone = FixedTimeZone.("", getfield.(round.(dt, Second), :value))
+    #ZonedDateTime.(row[field], zone; from_utc=true)
+#end
+
+ """
+     pilrZonedTime(timestamp_with_offset) => ZonedDateTime
+
+```jldoctest
+julia> pilrZonedTime("2021-09-29T11:04:41-04:00")
+2021-09-29T11:04:41-04:00
+```
+ """
+function pilrZonedTime(s::String)
+    ZonedDateTime(s, "yyyy-mm-ddTHH:MM:SSzzzz")
 end
 
 default_projection() = Dict(f=>0 for f in DEFAULT_REMOVE)

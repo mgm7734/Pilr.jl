@@ -2,10 +2,10 @@ module Pilr
 
 import Mongoc as M
 
-export tomany, bson
+export bson, tomany, toparent
 export unflatten
 export database, QA, BETA, STAGING, RemoteFile
-export dataset_collection, APP_LOG, PARTICIPANT_EVENTS, SURVEY_DATA
+export dataset_collection, pilrZonedTime, APP_LOG, NOTIFICATION_LOG, PARTICIPANT_EVENTS, SURVEY_DATA
 export pilrDataFrame
 export remotefile, parse_tomcatlog, parse_nginxlog
 export surveyqueue, deviceinfo

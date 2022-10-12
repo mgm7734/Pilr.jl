@@ -71,7 +71,7 @@ Convert flattened mongo doc to original shape
 """
 function unflatten(row)
     result = Dict{String,Any}()
-    for path in sort(keys(row)) 
+    for path in sort(collect(keys(row)))
         value = row[path]
         ismissing(value) && continue
         keys = split(string(path), '!')

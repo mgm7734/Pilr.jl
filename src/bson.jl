@@ -44,6 +44,34 @@ _bson(x) = bson(x)
 Base.:(~)(s::Symbol) = raw"$" * bson(s)
 Base.:(+)(s::Symbol) = ~s
 
+#=
+bsonify(io::IO, d::AbstractDict) = begin
+    @info("dict", d)
+    if (length(d) != 1)
+        print(io, "(")
+    end
+    join(sprint(bsonify, pairs(d)), ", ")
+    if (length(d) != 1)
+        print(io, ")")
+    end
+end
+bsonify(io::IO, p::Pair) = begin
+    @info "pair" p
+    (key,value) = p
+    if startswith(string(key), '$')
+      print(io, "+")
+    end
+    print(io, string(key))
+    print(io, " => ")
+    bsonify(io, value)
+end
+bsonify(io::IO, a::AbstractArray) = begin
+    print(io, "[")
+    join(io, sprint(bsonify, a), ", ")
+    print(io, "]")
+end
+bsonify(io::IO, x) = print(io, x)
+=#
 
 """
     tomany(parent, children...)
@@ -54,43 +82,67 @@ Pipeline helper TODO
 
 
 """
-function tomany(parent, children...; unwind=true, root=true)
-  result = []
-  if root
-    pk = "_id"
-  else
-    pk = "$parent._id"
-  end
-  for c in children
-    (fk, child) = c isa Tuple ? c : (parent, c)
-    push!(result, (
-      +:lookup => (:from => child, :localField => pk, :foreignField => fk, :as => child)))
-    unwind && push!(result, (+:unwind => "\$$child"))
-    parent = child
-    pk = "$(parent)._id"
-  end
-  result
-end
-
-#=
-function toowner(collection...; unwind = true, root=true)
-  result = []
-    fk = ""
-    for i in 1:length(collection)-1
-        parent = collection[i+1]
-        c = collection[i]
-        if c isa tuple
-          (child, fk) = c
-        else
-          child = c
-          fk = coll
-        (pk, parent) = p isa Tuple ? p : (parent, p)
+function tomany(parent, children...; unwind=true)
+    result = []
+    parent = string(parent)
+    if startswith(parent, '$')
+        parent = parent[2:end]
+        pk = "$parent._id"
+    else
+        pk = "_id"
+    end
+    for c in children
+        (fk, child) = c isa Union{Pair,Tuple} ? string.(Tuple(c)) : (parent, string(c))
         push!(result, (
-            +:lookup => ( :from => parent, :localField => pk, :foreignField => fk, :as => child )))
-        unwind && push!(result,  ( +:unwind=>"\$$child" ))
+          +:lookup => (:from => child, :localField => pk, :foreignField => fk, :as => child)))
+        unwind && push!(result, (+:unwind => "\$$child"))
         parent = child
         pk = "$(parent)._id"
     end
     result
-  if 
-=#
+end
+
+function many(parent::String, child::String; as=child, fk=parent, pk=:_id, unwind=true)
+    result = []
+    push!(result,
+        +:lookup => (:from => child, :localField => string(pk), :foreignField => string(fk), :as => string(as)) 
+    )
+    unwind && push!(result, 
+        +:unwind => "\$$as")
+end
+
+"""
+    toparent(key...; skipmissing=false)
+
+Join with a chain of parents specified by the keys.
+o
+
+# Examples
+
+```julia
+pilrfind(db.participant, toparent(:project))
+pilrfind(db.trigger. topparent(:configuration => :instrumentConfig))
+```
+"""
+function toparent(fk...; skipmissing=false)
+    result = []
+    for item in fk
+        (localField, from) = 
+            if item isa Pair
+                string.(Tuple(item))
+            else
+                item = string(item)
+                (_, parts...) = rsplit(item, '!'; limit=2)
+                if length(parts) == 0
+                    (item, item)
+                else
+                    (item, parts[1])
+                end
+            end
+        as = localField * "_"# overwrite it!
+        push!(result, 
+            +:lookup => (:from => from, :localField => localField, :foreignField => "_id", :as => as),
+            +:unwind => (:path => "\$$as", :preserveNullAndEmptyArrays => !skipmissing) )
+    end
+    result
+end 

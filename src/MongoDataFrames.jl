@@ -4,7 +4,7 @@ module MongoDataFrames
 export aggr, aggregate, find, pilrfind
 
 using ..Pilr
-using DataFrames: DataFrame
+using DataFrames: DataFrame, Not, select!
 using Pilr: bson
 import Mongoc as M
 
@@ -32,7 +32,7 @@ julia> find(db["project"], :code=>+:regex=>"^test"; :limit=>2) |>
 ```
 """
 =#
-find(collection::M.AbstractCollection, pairs::Pair...; kw...) where T =
+find(collection::M.AbstractCollection, pairs::Pair...; kw...) =
     M.find(collection, bson(pairs...); options=bson(kw)) |> DataFrame
 
 aggregate(collection::M.AbstractCollection, pipeline...; kw...) =
@@ -120,9 +120,9 @@ julia> configs[!, [:name, :instrumentConfig!name]]
 function pilrfind(
     collection::M.AbstractCollection, 
     queryitems::Union{Pair,AbstractArray}...
-    ; limit=0, options...
+    ; limit=0, showquery=false, options...
     )
-    pipeline = []
+    pipeline = Pair{Any,Any}[]
     for item in queryitems
         if item isa AbstractVector 
             push!(pipeline, item...)
@@ -130,24 +130,31 @@ function pilrfind(
             push!(pipeline, item)
         end
     end
-    isstage(i) = startswith(i |> first |> string, '$')
+    function isstage(i) 
+        op = i |> first |> string
+        startswith(op, '$') && !(op in ["\$or", "\$and"])
+    end
     if any(isstage, pipeline)
         pipeline = [ (isstage(i) ? i : +:match=>i) for i in pipeline ]
         if limit > 0
             push!(pipeline, +:limit=>limit)
         end
+        showquery && @info "pilrfind" collection pipeline
         c = M.aggregate(collection, bson(pipeline); options=bson(options...))
     else
         if limit > 0
             options = (:limit => limit, options...)
         end
+        showquery && @info "pilrfind" collection pipeline options
         c = M.find(collection, bson(pipeline...); options=bson(options...))
     end
     DataFrame(c)
 end
 
 pilrfind(db, project_code::AbstractString, dataset_code::AbstractString, query::Union{Pair,AbstractArray}...; kw...) = 
-    pilrfind(dataset_collection(db, project_code, dataset_code), query...; kw...)
+    select!(
+        pilrfind(dataset_collection(db, project_code, dataset_code), query...; kw...), 
+        Not(Regex("^($( join(Pilr.DEFAULT_REMOVE, '|') ))\$")), :)
 
 #"""
 #TODO: document
