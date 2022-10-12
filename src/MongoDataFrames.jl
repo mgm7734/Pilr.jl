@@ -8,7 +8,6 @@ using DataFrames: DataFrame, Not, select!
 using Pilr: bson
 import Mongoc as M
 
-#=
 @doc raw"""
     find(collection [ , field => match_expr ]... ; [ , option => value ])
 
@@ -31,7 +30,6 @@ julia> find(db["project"], :code=>+:regex=>"^test"; :limit=>2) |>
    2 │ test2   2015-01-12T17:28:50.481
 ```
 """
-=#
 find(collection::M.AbstractCollection, pairs::Pair...; kw...) =
     M.find(collection, bson(pairs...); options=bson(kw)) |> DataFrame
 
@@ -87,8 +85,6 @@ The vectors are flattened so you don't need `...` after `tomany`[@ref].
 
 If any item looks like a pipeline stage (starts with '"'), `Mongoc.aggregate` is called; 
 otherwise `Mongoc.find`.
-
-!!!! note "This replaces `find`, `aggregate`, `aggr`, etc."
 
 # Examples
 
