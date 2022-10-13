@@ -13,13 +13,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
   
-env:
-  MONGO_PASSWORD: ${{ secrets.MONGO_PASSWORD }}
-  JENKINS_USER: rooty
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # If authenticating with GitHub Actions token
-  DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }} # If authenticating with SSH deploy key
-  SSH_OPTS: -i$HOME/.ssh/github-actions
-
 jobs:
 
   testanddocs:
@@ -28,6 +21,13 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      MONGO_PASSWORD: ${{ secrets.MONGO_PASSWORD }}
+      JENKINS_USER: rooty
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # If authenticating with GitHub Actions token
+      DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }} # If authenticating with SSH deploy key
+      SSH_OPTS: -i$HOME/.ssh/github-actions
+
     steps:
       # See https://zellwk.com/blog/github-actions-deploy/
       - name: install SSH key for mongo tunnel for tests
