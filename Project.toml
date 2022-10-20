@@ -1,7 +1,7 @@
 name = "Pilr"
 uuid = "f363fe5b-9a9c-4ebf-9dc1-5f827d1806e9"
 authors = ["Mark Mendel <mmendel@meinergy.com> and contributors"]
-version = "0.11.0"
+version = "0.12.0"
 
 [deps]
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"

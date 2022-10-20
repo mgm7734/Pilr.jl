@@ -94,21 +94,12 @@ function tomany(parent, children...; unwind=true)
     for c in children
         (fk, child) = c isa Union{Pair,Tuple} ? string.(Tuple(c)) : (parent, string(c))
         push!(result, (
-          +:lookup => (:from => child, :localField => pk, :foreignField => fk, :as => child)))
+            +:lookup => (:from => child, :localField => pk, :foreignField => fk, :as => child)))
         unwind && push!(result, (+:unwind => "\$$child"))
         parent = child
         pk = "$(parent)._id"
     end
     result
-end
-
-function many(parent::String, child::String; as=child, fk=parent, pk=:_id, unwind=true)
-    result = []
-    push!(result,
-        +:lookup => (:from => child, :localField => string(pk), :foreignField => string(fk), :as => string(as)) 
-    )
-    unwind && push!(result, 
-        +:unwind => "\$$as")
 end
 
 """
@@ -127,7 +118,7 @@ pilrfind(db.trigger. topparent(:configuration => :instrumentConfig))
 function toparent(fk...; skipmissing=false)
     result = []
     for item in fk
-        (localField, from) = 
+        (localField, from) =
             if item isa Pair
                 string.(Tuple(item))
             else
@@ -139,10 +130,10 @@ function toparent(fk...; skipmissing=false)
                     (item, parts[1])
                 end
             end
-        as = localField * "_"# overwrite it!
-        push!(result, 
+        as = localField
+        push!(result,
             +:lookup => (:from => from, :localField => localField, :foreignField => "_id", :as => as),
-            +:unwind => (:path => "\$$as", :preserveNullAndEmptyArrays => !skipmissing) )
+            +:unwind => (:path => "\$$as", :preserveNullAndEmptyArrays => !skipmissing))
     end
     result
 end 

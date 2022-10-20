@@ -103,7 +103,8 @@ function pilrDataFrame(db, project_code, dataset_code, query::Pair...; kw...)
 end
 
 """
-    pilrZonedTime(row, field = :metadata!timestamp)
+    pilrZonedTime(row, field = :metadata!timestamp) => ZonedDateTime
+    pilrZonedTime(dataframe, field = :metadata!timestamp) => Vector{ZonedDateTime}
 
 Convert a Mongo date field to ZonedDateTime using the metadata!timestamp and localTimestamp to
 determine the offset.
@@ -116,13 +117,25 @@ end
 pilrZonedTime(df::AbstractDataFrame, field = "metadata!timestamp") = map(eachrow(df)) do row
     pilrZonedTime(row)
 end
-    #dt = row.localTimestamp .- row.metadata!timestamp
-    #zone = FixedTimeZone.("", getfield.(round.(dt, Second), :value))
-    #ZonedDateTime.(row[field], zone; from_utc=true)
-#end
+
+"""
+Add a `ZoneDateTime` `timestamp` column to dataset DataFrame that combines `metadata!timestamp` and `localTimestamp`.
+Shorten path names
+"""
+function pilrShorten!(df::AbstractDataFrame)
+    cruff = [ Pilr.DEFAULT_REMOVE..., :metadata!timestamp, :localTimestamp, :timestampString ]
+    pat = Regex("^($( join(cruff, '|') ))\$")
+    df.timestamp = pilrZonedTime(df)
+    select!(df, :timestamp, Not(pat), :)
+    select!(df, names(df) .=> replace.(names(df), r"^metadata!"=>"m!", r"^data!args!"=>"da!", r"^data!"=>"d!"))
+    df
+end
+@deprecate pilrZonedTime! pilrShorten!
 
  """
      pilrZonedTime(timestamp_with_offset) => ZonedDateTime
+
+Parse a PiLR timestamp string to a ZonedDateTime.
 
 ```jldoctest
 julia> pilrZonedTime("2021-09-29T11:04:41-04:00")

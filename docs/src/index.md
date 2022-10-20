@@ -5,7 +5,7 @@ Tools for accessing and analyzing PiLR data.
 ## Quickstart
 
 You can install Pilr.jl by typing the following in the Julia REPL:
-```julia
+```
 ] add Pilr
 ```
 

@@ -15,13 +15,14 @@ julia> surveyqueue(db, projcode, "metadata.pt"=>"278", "metadata.timestamp"=>"\$
 function surveyqueue(db, projectcode, filter::Pair... = []; kw...)
     summary = pilrfind(db, projectcode, APP_LOG, "data.tag"=>"SURVEY_QUEUE", filter...; kw...)
     nrow(summary) == 0 && error("nothing found for $projectcode $filter")
+    summary.timestamp = pilrZonedTime(summary)
     select!(summary,
-        :metadata!timestamp, :metadata!pt, #:data!args,
+        :timestamp, :metadata!pt => :pt, #:data!args,
         :data!args=>ByRow(a->
-            [(trigger=obj["code"], 
-              notifId=get(obj, "notificationId", missing) )
+            ["""($(obj["code"]), $(get(obj, "notificationId", missing)))"""
                 for item in a 
-                for obj in [get(item, "obj", Dict("code"=>"(none)"))] ]
+                for obj in [get(item, "obj", nothing)] if obj !== nothing ]
+                #for obj in [get(item, "obj", Dict("code"=>"(none)"))] ]
         )=>:content
     )
 end
@@ -94,4 +95,19 @@ function notifications2(db, projcode, filter...)
             :data!event_type => "notification_requested")
     # groupby(df, [ :metadata!pt, data!args!key  ])
     groupby(df, [ :metadata!pt, :metadata!timestamp,  ])
+end
+
+export participant_events
+function participant_events(db, projcode, filter...; kw...)
+    ptevents = pilrZonedTime!(pilrfind(db, projcode, PARTICIPANT_EVENTS, filter...; kw...))
+    ptevents.T = map(eachrow(ptevents)) do r
+        if r.data!event_type == "notification_requested"
+            pilrZonedTime(r.data!args!notif_time)
+        else
+            r.timestamp
+        end
+    end
+    transform!(ptevents, :T => (t->Date.(t)) => :day)
+    select!(ptevents, :T, :metadata!pt, :data!event_type, :data!session, r"survey", r"data!", Not(r"epoch"), :)
+    sort!(ptevents, :T)
 end
