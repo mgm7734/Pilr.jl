@@ -38,7 +38,9 @@ dataset_collection(db::Database, project_code, dataset_code, kind = data) =
     # df::DataFrame
 # end
 
-
+"""
+Columns that are moved to the end of returned DataFrames
+"""
 DEFAULT_REMOVE=[
     :_id, :rawId, :schemaVersion, :dateReceived, :dataSource, :dataSourceId, :dateProcessed, :timestampString, :metadata!id
 ]
@@ -123,7 +125,9 @@ Add a `ZoneDateTime` `timestamp` column to dataset DataFrame that combines `meta
 Shorten path names
 """
 function pilrShorten!(df::AbstractDataFrame)
-    cruff = [ Pilr.DEFAULT_REMOVE..., :metadata!timestamp, :localTimestamp, :timestampString ]
+    (nrow(df) > 0 && :metadata!timestamp in names(df)) || return df
+
+    cruff = [ :metadata!timestamp, :localTimestamp, :timestampString, Pilr.DEFAULT_REMOVE... ]
     pat = Regex("^($( join(cruff, '|') ))\$")
     df.timestamp = pilrZonedTime(df)
     select!(df, :timestamp, Not(pat), :)

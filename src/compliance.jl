@@ -99,15 +99,18 @@ end
 
 export participant_events
 function participant_events(db, projcode, filter...; kw...)
-    ptevents = pilrZonedTime!(pilrfind(db, projcode, PARTICIPANT_EVENTS, filter...; kw...))
+    ptevents = pilrShorten!(mfind(db, projcode, PARTICIPANT_EVENTS, filter...; kw... ))
+    
+    nrow(ptevents) > 0 || return ptevents
+
     ptevents.T = map(eachrow(ptevents)) do r
-        if r.data!event_type == "notification_requested"
-            pilrZonedTime(r.data!args!notif_time)
+        if r.d!event_type == "notification_requested"
+            pilrZonedTime(r.da!notif_time)
         else
             r.timestamp
         end
     end
-    transform!(ptevents, :T => (t->Date.(t)) => :day)
-    select!(ptevents, :T, :metadata!pt, :data!event_type, :data!session, r"survey", r"data!", Not(r"epoch"), :)
+    transform!(ptevents, :T => ByRow(t->Date.(t)) => :day)
+    select!(ptevents, :T, :m!pt, :d!event_type, :d!session, r"survey", r"data!", Not(r"epoch"), :)
     sort!(ptevents, :T)
 end

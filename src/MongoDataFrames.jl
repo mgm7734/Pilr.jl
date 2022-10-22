@@ -118,33 +118,34 @@ function pilrfind(
     queryitems::Union{Pair,AbstractArray}...
     ; limit=0, showquery=false, options...
     )
-    pipeline = Pair{Any,Any}[]
+    pairs = Pair{Any,Any}[]
     for item in queryitems
         if item isa AbstractVector 
-            push!(pipeline, item...)
+            push!(pairs, item...)
         else
-            push!(pipeline, item)
+            push!(pairs, item)
         end
     end
-    function isstage(i) 
-        op = i |> first |> string
-        startswith(op, '$') && !(op in ["\$or", "\$and"])
-    end
-    if any(isstage, pipeline)
-        pipeline = [ (isstage(i) ? i : +:match=>i) for i in pipeline ]
+    if any(_isstage, pairs)
+        pipeline = [ (_isstage(i) ? i : +:match=>i) for i in pairs ]
         if limit > 0
             push!(pipeline, +:limit=>limit)
         end
-        showquery && @info "pilrfind" collection pipeline
+        showquery && @info "mfind" collection pipeline
         c = M.aggregate(collection, bson(pipeline); options=bson(options...))
     else
         if limit > 0
             options = (:limit => limit, options...)
         end
-        showquery && @info "pilrfind" collection pipeline options
-        c = M.find(collection, bson(pipeline...); options=bson(options...))
+        showquery && @info "mfind" collection pairs options
+        c = M.find(collection, bson(pairs...); options=bson(options...))
     end
     DataFrame(c)
+end
+
+function _isstage(i) 
+    op = i |> first |> string
+    startswith(op, '$') && !(op in ["\$or", "\$and"])
 end
 
 pilrfind(db, project_code::AbstractString, dataset_code::AbstractString, query::Union{Pair,AbstractArray}...; kw...) = 
