@@ -125,7 +125,7 @@ Add a `ZoneDateTime` `timestamp` column to dataset DataFrame that combines `meta
 Shorten path names
 """
 function pilrShorten!(df::AbstractDataFrame)
-    (nrow(df) > 0 && :metadata!timestamp in names(df)) || return df
+    (nrow(df) > 0 && "metadata!timestamp" in names(df)) || return df
 
     cruff = [ :metadata!timestamp, :localTimestamp, :timestampString, Pilr.DEFAULT_REMOVE... ]
     pat = Regex("^($( join(cruff, '|') ))\$")
