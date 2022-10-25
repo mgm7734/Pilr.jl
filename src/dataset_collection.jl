@@ -1,4 +1,5 @@
-using Dates, DataFrames, Mongoc, TimeZones, Pilr, Pilr.MongoDataFrames
+using Dates, DataFrames, TimeZones, Pilr, Pilr.MongoDataFrames
+import Mongoc as M
 
 APP_LOG = "pilrhealth:mobile:app_log"
 NOTIFICATION_LOG =  "pilrhealth:mobile:notification_log"
