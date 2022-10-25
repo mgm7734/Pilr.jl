@@ -74,6 +74,15 @@ end
 bsonify(io::IO, x) = print(io, x)
 =#
 
+export ljoin
+function ljoin(with, foreignField; localField=:_id, as=with, unwind=true, skipmissing=false)
+    result = Pair[
+        +:lookup => (:from => with, :foreignField => foreignField, :localField => localField, :as => as)
+    ]
+    unwind && push!(result, (+:unwind => (:path => "\$$as", :preserveNullAndEmptyArrays => !skipmissing)))
+    result
+end
+
 """
     tomany(parent, children...)
 
@@ -112,8 +121,8 @@ o
 # Examples
 
 ```julia
-pilrfind(db.participant, toparent(:project))
-pilrfind(db.trigger. topparent(:configuration => :instrumentConfig))
+mfind(db.participant, toparent(:project))
+mfind(db.trigger. topparent(:configuration => :instrumentConfig))
 ```
 """
 function toparent(fk...; skipmissing=false)

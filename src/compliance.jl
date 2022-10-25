@@ -13,7 +13,7 @@ julia> surveyqueue(db, projcode, "metadata.pt"=>"278", "metadata.timestamp"=>"\$
 
 """
 function surveyqueue(db, projectcode, filter::Pair... = []; kw...)
-    summary = pilrfind(db, projectcode, APP_LOG, "data.tag"=>"SURVEY_QUEUE", filter...; kw...)
+    summary = mfind(db, projectcode, APP_LOG, "data.tag"=>"SURVEY_QUEUE", filter...; kw...)
     nrow(summary) == 0 && error("nothing found for $projectcode $filter")
     summary.timestamp = pilrZonedTime(summary)
     select!(summary,
@@ -90,7 +90,7 @@ function parse_timestamp(utc, zone) #; zone=TimeZones.UTC_ZERO)
 end
 
 function notifications2(db, projcode, filter...)
-    df = pilrfind(db, projcode, PARTICIPANT_EVENTS,
+    df = mfind(db, projcode, PARTICIPANT_EVENTS,
             filter...,
             :data!event_type => "notification_requested")
     # groupby(df, [ :metadata!pt, data!args!key  ])
@@ -114,3 +114,48 @@ function participant_events(db, projcode, filter...; kw...)
     select!(ptevents, :T, :m!pt, :d!event_type, :d!session, r"survey", r"data!", Not(r"epoch"), :)
     sort!(ptevents, :T)
 end
+
+ispresent = (!) ∘ ismissing
+
+export compliance
+"""
+Initial stab at compliance.
+
+Columns
+pt,  day, session, notif_time (ptevent), survey_code,  trigger_code, window_start, #starts, submitted_at, expired_at, error_description
+
+# Enhancements
+Did pt miss notifications due to not logging in time?
+"""
+function compliance(db, project, filter...=())
+    ptevents = participant_events(db, project, filter..., 
+        :date!event_type=> +:in=> [
+            :push_notification, :notification_requested, 
+            :survey_started, :survey_submitted, :episode_expired, :episode_error ],
+    )
+    @info "names" names(ptevents)
+    transform!(ptevents, :T => (t->Date.(t)) => :day)
+
+    sessions = filter(groupby(ptevents, :data!session)) do s
+        ispresent(s.data!args!survey_code[1]) &&
+        s.data!event_type[1] in string.([:push_notification, :notification_requested, :survey_started])
+    end
+
+    session_kind = Dict( 
+        "push_notification" => "push",
+        "notification_requested" => "scheduled",
+        "survey_started" => "self")
+
+    combine(sessions) do s
+        
+        ( pt=s.metdata!pt, s.day, 
+          notified_at=Time(s.T),
+          kind=session_kind[s.data!event_type[1]], 
+          s.survey_code,
+          starts=count(==("survey_started"), s.data!event_type),
+          submited = any(==("survey_submitted"), s.data!event_type),
+          session=s.data!session
+        )
+    end
+end
+

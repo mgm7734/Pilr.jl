@@ -7,6 +7,6 @@ Pages = ["mongo.md"]
 ## API Reference
 
 ```@autodocs
-Modules = [Pilr, Pilr.MongoDataFrames]
+Modules = [Pilr]
 Order   = [:function, :constant, :type]
 ```

@@ -1,8 +1,9 @@
 using Documenter, Mongoc, Pilr
 
 DocMeta.setdocmeta!(Pilr, :DocTestSetup,
-                    :(using Pilr, Pilr.MongoDataFrames, Dates, Mongoc, TimeZones;import DataFrames); recursive=true)
+                    :(using Pilr, Dates, Mongoc, TimeZones;import DataFrames); recursive=true)
 
+ENV["COLUMNS"] = 80
 makedocs(
     modules = [Pilr],
     sitename = "Pilr",

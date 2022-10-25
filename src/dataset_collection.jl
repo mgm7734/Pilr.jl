@@ -1,4 +1,4 @@
-using Dates, DataFrames, TimeZones, Pilr, Pilr.MongoDataFrames
+using Dates, DataFrames, TimeZones, Pilr
 import Mongoc as M
 
 APP_LOG = "pilrhealth:mobile:app_log"
@@ -71,7 +71,8 @@ The following options are passed along to `Mongoc.find` with `bson` automaticall
 - projection
 - sort
 
-All other keyword arguments are passed on to [`Mongoc.find`](@ref).
+All other keyword arguments are passed on to 
+[`Mongoc.find`](https://felipenoris.github.io/Mongoc.jl/stable/api/#find).
 
 # TODO
 
@@ -84,25 +85,24 @@ julia> df = pilrDataFrame(database(ENV["JENKINS_USER"], QA, ENV["MONGO_PASSWORD"
                           "base_pilr_ema", APP_LOG,
                           "data.tag" => "SURVEY_QUEUE";
                           :sort=>:_id=>1, :limit=>1)
-1×8 DataFrame
+1×17 DataFrame
  Row │ timestamp                  metadata!pt  data!tag      data!msg          ⋯
      │ ZonedDat…                  String       String        String            ⋯
 ─────┼──────────────────────────────────────────────────────────────────────────
    1 │ 2018-01-10T18:39:34-06:00  pb1          SURVEY_QUEUE  Surveys displayed ⋯
-                                                               5 columns omitted
+                                                              14 columns omitted
 
 ```
 """
 function pilrDataFrame(db, project_code, dataset_code, query::Pair...; kw...)
-    if !(:projection in  keys(kw))
-        kw = (kw..., :projection=>default_projection())
-    end
-    df = find(dataset_collection(db, project_code, dataset_code), query...; kw...)
+    df = mfind(dataset_collection(db, project_code, dataset_code), query...; kw...)
     if nrow(df) == 0
         return df
     end
+    cruff = [ :metadata!timestamp, :localTimestamp, :timestampString, Pilr.DEFAULT_REMOVE... ]
+    pat = Regex("^($( join(cruff, '|') ))\$")
     df.timestamp = pilrZonedTime(df)
-    select!(df, :timestamp, Not([:metadata!timestamp, :localTimestamp]), :)
+    select!(df, :timestamp, Not(pat), :)
 end
 
 """

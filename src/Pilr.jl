@@ -19,11 +19,6 @@ include("MongoDataFrames.jl")
 include("remote_file.jl")
 include("compliance.jl")
 
-"""
-New name for [`MongoDataFrames.pilrfind`](@ref)
-"""
-mfind(args...; kw...) = MongoDataFrames.pilrfind(args...; kw...)
-
 _opts(x::Pair{Symbol}) = bson(x)
 _opts(xs::Tuple{Vararg{Pair{Symbol}}}) = bson(xs...)
 
