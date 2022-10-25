@@ -11,9 +11,9 @@ Construct a BSON object using keyword arguments or pairs to reduce quote clutter
 # Examples
 
 ```jldoctest
-julia> bson("metadata.pt" => "xyz", :project => +:in => ["proj1", "proj2"])
+julia> bson(:metadata!pt => r"^mei.*1$", :project => +:in => ["proj1", "proj2"])
 Mongoc.BSON with 2 entries:
-  "metadata.pt" => "xyz"
+  "metadata.pt" => Dict{Any, Any}("\$regex"=>"^mei.*1\$")
   "project"     => Dict{Any, Any}("\$in"=>Any["proj1", "proj2"])
 
 julia> bson([
@@ -34,6 +34,7 @@ bson(ps::Pair...) = M.BSON((Pair(bson(k), _bson(v)) for (k, v) in ps)...)
 bson(t::Tuple) = bson(t...)
 bson(d::AbstractDict) = bson(pairs(d)...)
 bson(s::Symbol) = replace(string(s), "!!" => "!", "!" => ".")
+bson(re::Regex) = bson(+:regex => re.pattern)
 bson(x) = x
 
 # Mongoc.aggregate should accept Array{BSON} but doesn't
