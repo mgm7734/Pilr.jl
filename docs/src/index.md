@@ -1,31 +1,56 @@
 # Pilr.jl Documentation
 
-Tools for accessing and analyzing PiLR data.
+*Tools for accessing and analyzing PiLR data.*
 
-## Quickstart
+This is a hodge-podge set of tools for pulling data from Mongodb & PiLR log files into DataFrames to leverage Julia's analysis tools.
 
-You can install Pilr.jl by typing the following in the Julia REPL:
-```
-] add Pilr
+## Install
+
+`Pilr` is not a registered Julia package, so you must use the github URL to install it:
+
+```julia
+julia> using Pkg; Pkg.add("https://github.com/mgm7734/Pilr.jl");
 ```
 
-followed by 
-```
-using Pilr
-```
-to load the package.
+## Overview
 
-* [`Pilr.database`](@ref) returns a [`Pilr.Database`](@ref) connected to a PiLR Mongo database via a tunnel.
-* [`bson`](@ref) implements a concise syntax for generating `Mongoc.BSON` queries
-* [`mfind`](@ref) accepts `bson` syntax, invokes `Mongoc.find` or `Mongoc.aggregate` as needed and returns a DataFrame
+* [`database`](@ref) returns a [`Pilr.Database`](@ref) connected to a PiLR Mongo database via a tunnel. 
+  It is mostly a wrapper for [`Mongoc.Database`](https://felipenoris.github.io/Mongoc.jl/stable/api/#Database).
+  ```jldoctest test
+  julia> using Pilr
+
+  julia> db = database(ENV["JENKINS_USER"], QA, ENV["MONGO_PASSWORD"]);
+  ```
+
+* `Pilr` provides an implementation of the [`Tables.jl`](https://tables.juliadata.org/stable/) interface for `Mongoc.Cursor`.
+  This lets you do things like constructing a `DataFrame` directly from a query:
+  ```jldoctest test
+  julia> using DataFrames, Mongoc
+
+  julia> DataFrame(Mongoc.find(db.project; options=Mongoc.BSON("""{"limit": 1}""")))
+  1×12 DataFrame
+   Row │ _id                       active  code    dateCreated              isDe ⋯
+       │ String                    Bool    String  DateTime                 Bool ⋯
+  ─────┼──────────────────────────────────────────────────────────────────────────
+     1 │ 549513b2e4b0b40e50e6527d    true  test1   2014-12-20T06:14:10.810       ⋯
+                                                                 8 columns omitted
+  ```
+
+* [`dataset_collection`](@ref) returns the `Mongoc.Collection` for a give project and dataset code. You rarely
+  need to use it directly, though, since `mfind(db, projectcode, datasetcode, query...)` uses it under the hood.
+
+* [`bson`](@ref) implements a concise syntax for generating `Mongoc.BSON` queries with much less puncuation.
+
+* [`mfind`](@ref) accepts `bson` syntax, invokes `Mongoc.find` or `Mongoc.aggregate` as needed,  then returns a `DataFrame`.
+
+* [`unflatten`](@ref) reverses the conversion performed by Pilr's `Tables` implementation, converting a `DataFrame` or `DataFrameRow` 
+  back into the original `Mongoc.BSON` object. You'll need this to write data to Mongodb.
+
+* Conversions between PiLR & Mongodb date-time representations to `ZonedDateTime` or `DateTime` (for local date-times).
 
 ## Examples
 
 ```jldoctest test
-julia> using Pilr
-
-julia> db = database(ENV["JENKINS_USER"], QA, ENV["MONGO_PASSWORD"]);
-
 julia> proj = mfind(db.project, :code=>"base_pilr_ema");
 
 julia> mfind(db, proj.code[1], SURVEY_DATA,
