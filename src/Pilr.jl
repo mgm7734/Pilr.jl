@@ -14,7 +14,7 @@ export mfind
 include("bson.jl")
 include("database.jl")
 include("mongo_tables.jl")
-include("cursor_tables.jl")
+#include("cursor_tables.jl")
 include("MongoDataFrames.jl")
 include("remote_file.jl")
 include("compliance.jl")

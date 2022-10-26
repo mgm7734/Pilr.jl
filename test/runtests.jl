@@ -5,19 +5,8 @@ import Mongoc as M
 @testset "Pilr.jl" begin
 
     include("bson_tests.jl")
+    include("tables_tests.jl")
 
-    #=
-    @testset "flatdict" begin
-        fakecursor = [
-            bson(:meta=>bson(:id=>"1"),
-                 :data=>bson(:type=>"type-a", :obs_a1=>42, :extra=>"extra")),
-            bson(:meta=>bson(:id=>"2"),
-                 :data=>bson(:type=>"type-b", :obs_b1=>"42b", :extra=>bson(:x=>0)))
-        ]
-
-    end
-    =#
-        
     db = database(ENV["JENKINS_USER"], QA, ENV["MONGO_PASSWORD"])
 
     @testset "dataset_collection" begin

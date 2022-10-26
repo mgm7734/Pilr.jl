@@ -18,6 +18,7 @@ function Base.iterate(x::FlatteningDictIterator, state = nothing)
     pairs = []
 
     function pushpathvalue(path, value::AbstractDict)
+        @info "pushpathvalue" path value
         prefix =
             if path == ""
                 ""
@@ -32,6 +33,7 @@ function Base.iterate(x::FlatteningDictIterator, state = nothing)
     end
 
     function pushpathvalue(path, value)
+        @info "pushpathvalue v v" path value
         push!(pairs, (path=Symbol(path), value))
     end
 
@@ -62,30 +64,13 @@ Tables.columnnames(row::FlattenedRow) = map(first, row.pairs)
 
 Tables.istable(::M.Cursor) = true
 
-Tables.rowaccess(::M.Cursor) = true
+Tables.columnaccess(::M.Cursor) = true
 
-Tables.rows(c::M.Cursor) = FlatteningDictIterator(c)
-
-"""
-Convert flattened mongo doc to original shape
-"""
-function unflatten(row)
-    result = Dict{String,Any}()
-    for path in sort(collect(keys(row)))
-        value = row[path]
-        ismissing(value) && continue
-        keys = split(string(path), '!')
-        d = result
-        for k in keys[1:end-1]
-            d = get!(d, k) do
-                Dict{String,Any}()
-            end
-        end
-        d[keys[end]] = value
-    end
-    result
+function Tables.columns(c::M.Cursor) 
+    @debug "Tables.columns(::M.Cursor)"
+    t = Tables.dictcolumntable(FlatteningDictIterator(c))
+    @info "DEBUG" t
+    Tables.columns(t)
 end
-unflatten(v::AbstractVector) = map(unflatten, v)
-unflatten(v::AbstractDataFrame) = map(unflatten, eachrow(v))
 
 

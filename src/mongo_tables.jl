@@ -1,17 +1,7 @@
-using DataStructures
-using SimpleTraits: istrait, @traitdef, @traitimpl, @traitfn
-#import SimpleTraits
-
+using DataStructures, Tables
+using DataFrames: AbstractDataFrame
 
 #=
-canFlatten(T) = istrait(SimpleTraits.BaseTraits.IsIterator{T}) && eltype(T) <: AbstractDict
-
-@traitdef CanFlatten{T}
-
-@traitimpl CanFlatten{M.Cursor}
-
-@traitimpl CanFlatten{T} <- canFlatten(T)
-
 function _runreplace(pairs::Vector, k, v) where {T <: Union{Symbol,Nothing}}
     if k == nothing
         return nothing, nothing
@@ -32,7 +22,7 @@ end
 =#
 
 """
-    flatdict(cursor ; [separator = "!"])
+    flatten_dicts(cursor ; [separator = "!"])
 
 Convert an iterable of nested Dict{String,Any} (such as a Cursor returned by
 [`Mongoc.find`](https://felipenoris.github.io/Mongoc.jl/stable/api/#Mongoc.find)) into a dictonary of equal length columns.
@@ -49,14 +39,10 @@ Using "!" does not require quoting in Symbol names, so you can type `:metadata!p
 - `replace` : either a vector of Pair{Symbol,Any} or a function (key, value) -> (key, value).
 - `order` : a vector of columns that should appear first.
 """
-#@traitfn flatdict(cursor::::CanFlatten; kws...) = _flatdict(cursor; kws...)
-# this is handled by Tables implementation
-Base.@deprecate flatdict(x) FlatteningDictIterator(x) 
-
-function _flatdict(
+function flatten_dicts(
     cursor; 
     separator::String="!",
-    replace=[],
+    # replace=[],
     order=[]
     )::OrderedDict
     
@@ -67,59 +53,89 @@ function _flatdict(
     function pushvalue!(::Nothing, ::Nothing, prefix) end
 
     function pushvalue!(key, dict::AbstractDict, prefix)
-        key, dict = _runreplace(replace, "$prefix$key", dict)
-        if key === nothing
-            return
-        end
+        #key, dict = _runreplace(replace, "$prefix$key", dict)
+        #if key === nothing
+        #    return
+        #end
+        prefix = "$prefix$key$separator"
         for (k, v) in dict
-            pushvalue!(k, v, "$key$separator")
+            pushvalue!(k, v, prefix)
         end
     end
     function pushvalue!(key, value, prefix)
-        key, value = _runreplace(replace, "$prefix$key", value)
-        if key === nothing
-            return
-        end
-        key = Symbol(key)
-        if rowcount == 0
+        #key, value = _runreplace(replace, "$prefix$key", value)
+        #if key === nothing
+        #    return
+        #end
+        key = Symbol("$prefix$key")
+        if rowcount == 1
             columns[key] = [value]
+        elseif !haskey(columns, key)
+            col = Vector{Union{Missing,typeof(value)}}(missing, rowcount)
+            col[end] = value
+            columns[key] = col 
         else
-            col = get!(columns, key) do
-                Vector{Union{Missing,typeof(value)}}(missing, rowcount)
-            end
+            col = columns[key]
             if typeof(value) <: eltype(col)
                 push!(col, value)
             else
-                columns[key] = [col..., value]
+                new = Vector{promote_type(eltype(col), typeof(value))}(missing, rowcount)
+                @debug "promote" key value typeof(new) new
+                copyto!(new, col)
+                new[end] = value
+                columns[key] = new
+                #columns[key] = [col..., value]
             end
         end
     end
 
     for doc in cursor
+        rowcount += 1
         for (key, value) in doc
             pushvalue!(key, value, "")
         end
-        rowcount += 1
         for (key, vector) in columns
+            @debug "fix" key length(vector)
             if length(vector) < rowcount
                 pushvalue!(key, missing, "")
+                @debug "fixed" length(columns[key])
             end
         end
     end
-    OrderedDict(
-        (Pair(k, columns[k]) for k in order)...,
-        (Pair(k, v) for (k,v) in pairs(columns) if !(k ∈ order))...)
+    columns
+    #OrderedDict(
+    #    (Pair(k, columns[k]) for k in order)...,
+    #    (Pair(k, v) for (k,v) in pairs(columns) if !(k ∈ order))...)
 end
 
-#using Tables
-#Tables.columns(table::AbstractDict) = flatten(table)
-#Tables.getcolumn(table::AbstractDict, i::Int) = table[collect(keys(table))[i]]
-#Tables.getcolumn(table::OrderedDict, nm::Symbol) = table[nm]
-#Tables.columnnames(table::OrderedDict) = collect(keys(table))
-#Tables.istable(::OrderedDict) = true
-#
-#Tables.istable(::M.Cursor) = true
-#
-#Tables.columnaccess(::M.Cursor) = true
-#
-#Tables.columns(cursor::M.Cursor) = MongoTable(cursor)
+#### Tables implementation for Mongoc.Cursor
+
+Tables.istable(::M.Cursor) = true
+Tables.columnaccess(::M.Cursor) = true
+Tables.columns(c::M.Cursor) = flatten_dicts(c)
+
+"""
+    unflatten(row)
+    unflatten(::Vector{row})
+    unflatten(::AbstractDataFrame)
+
+Convert flattened mongo docs to its original shape
+"""
+function unflatten(row)
+    result = Dict{String,Any}()
+    for path in sort(collect(keys(row)))
+        value = row[path]
+        ismissing(value) && continue
+        keys = split(string(path), '!')
+        d = result
+        for k in keys[1:end-1]
+            d = get!(d, k) do
+                Dict{String,Any}()
+            end
+        end
+        d[keys[end]] = value
+    end
+    result
+end
+unflatten(v::AbstractVector) = map(unflatten, v)
+unflatten(v::AbstractDataFrame) = map(unflatten, eachrow(v))

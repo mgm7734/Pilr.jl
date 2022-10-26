@@ -35,14 +35,12 @@ function deviceinfo(db, projectcode, query::Pair{Symbol}... = (); limit = nothin
         (f => "\$data.args.$f" for f in F)...
     ]
     limitstage = limit === nothing ? [] : [ +:limit=>limit ]
-    df = M.aggregate(dataset_collection(db, projectcode, APP_LOG), bson([
-            +:match=>("data.tag"=>+:in=>[ "SYNC", "LOGIN" ], query...),
+    df = mfind(db, projectcode, APP_LOG, 
+            "data.tag"=>+:in=>[ "SYNC", "LOGIN" ], query...,
             limitstage...,
             +:group=>(:_id=>+:metadata!pt, :v=>+:addToSet=>(SETEXPRS...,)),   
             +:unwind=>+:v,
-            +:sort=>:metadata!timestamp=>1
-            ])
-        ) |> flatdict |> DataFrame
+            +:sort=>:metadata!timestamp=>1)
     rename!(df, :v!time=>:time, :v!pt=>:pt, (Symbol("v!$f") => Symbol(f) for f in F)...)
     select!(df, :time, :pt, Not([:_id]))
     sort!(df, :time; rev=false)

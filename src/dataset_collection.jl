@@ -53,7 +53,7 @@ Fetch data froma PiLR dataset and convert it to a DataFrame with optional, commo
 
 A convenience function for invoking
 ```
-Mongoc.find(dataset_collection(...), ...) |> flatdict |> DataFrame
+mfind(dataset_collection(...)
 ```
 with common default projections and conversions.
 
