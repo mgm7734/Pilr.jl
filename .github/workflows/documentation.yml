@@ -36,6 +36,9 @@ jobs:
       - name: Install SSH key
         run: echo -n "${{ secrets.SSH_KEY }}" | base64 --decode > keyfile ; sudo chmod 0600 keyfile
 
+      - name: Test SSH Key
+        run: ssh -ikeyfile -oStrictHostKeyChecking=no "${{ secrets.JENKINS_USER }}"@jenkins.pilrhealth.com hostname
+
       - name: Build and deploy
         env:
           MONGO_PASSWORD: ${{ secrets.MONGO_PASSWORD }}
