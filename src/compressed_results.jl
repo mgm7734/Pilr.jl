@@ -1,7 +1,7 @@
 export compressed_survey_data
 
 """
-    compressed_results(db, projectcode, [ field => queryexpr ]... [ ; mongo_find_options...]) -> DataFrame
+    compressed_results(db, projectcode, surveycode, [ field => queryexpr ]... [ ; mongo_find_options...]) -> DataFrame
 
 Create a PiLR compressed [aka "unstacked", "wide"] survey result.
 
