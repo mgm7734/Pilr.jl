@@ -36,14 +36,11 @@ Using "!" does not require quoting in Symbol names, so you can type `:metadata!p
 # Option Arguments
 
 - `separator` : path separator for flattened column names. 
-- `replace` : either a vector of Pair{Symbol,Any} or a function (key, value) -> (key, value).
-- `order` : a vector of columns that should appear first.
 """
 function flatten_dicts(
     cursor; 
     separator::String="!",
     # replace=[],
-    order=[]
     )::OrderedDict
     
     # Initializign with keys from order loses the column type
@@ -79,12 +76,12 @@ function flatten_dicts(
             if typeof(value) <: eltype(col)
                 push!(col, value)
             else
-                new = Vector{promote_type(eltype(col), typeof(value))}(missing, rowcount)
+                #new = Vector{promote_type(eltype(col), typeof(value))}(missing, rowcount)
+                new = Vector{Union{ eltype(col), typeof(value) }}(undef, rowcount)
                 @debug "promote" key value typeof(new) new
                 copyto!(new, col)
                 new[end] = value
                 columns[key] = new
-                #columns[key] = [col..., value]
             end
         end
     end
@@ -139,3 +136,4 @@ function unflatten(row)
 end
 unflatten(v::AbstractVector) = map(unflatten, v)
 unflatten(v::AbstractDataFrame) = map(unflatten, eachrow(v))
+unflatten(v::Pair...) = unflatten(Dict(v...))

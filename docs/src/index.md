@@ -2,7 +2,7 @@
 
 *Tools for accessing and analyzing PiLR data.*
 
-This is a hodge-podge set of tools for pulling data from Mongodb & PiLR log files into DataFrames to leverage Julia's analysis tools.
+This is a hodge-podge set of tools for pulling data from Mongodb & PiLR log files into [DataFrames](https://dataframes.juliadata.org/stable/) to leverage Julia's analysis tools.
 
 ## Install
 

@@ -5,8 +5,8 @@ import Mongoc as M
 export bson, tomany, toparent
 export unflatten
 export database, QA, BETA, STAGING, RemoteFile
-export dataset_collection, pilrShorten!, pilrZonedTime, pilrZonedTime!, APP_LOG, NOTIFICATION_LOG, PARTICIPANT_EVENTS, SURVEY_DATA
-export pilrDataFrame
+export dataset_collection, pilrshorten!, pilrZonedTime, pilrZonedTime!, APP_LOG, NOTIFICATION_LOG, PARTICIPANT_EVENTS, SURVEY_DATA, ENCOUNTER 
+export pilrfind
 export remotefile, parse_tomcatlog, parse_nginxlog
 export surveyqueue, deviceinfo
 export mfind
@@ -18,6 +18,7 @@ include("mongo_tables.jl")
 include("MongoDataFrames.jl")
 include("remote_file.jl")
 include("compliance.jl")
+include("compressed_results.jl")
 
 _opts(x::Pair{Symbol}) = bson(x)
 _opts(xs::Tuple{Vararg{Pair{Symbol}}}) = bson(xs...)

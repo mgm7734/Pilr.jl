@@ -74,10 +74,15 @@ end
 bsonify(io::IO, x) = print(io, x)
 =#
 
-export ljoin
-function ljoin(with, foreignField; localField=:_id, as=with, unwind=true, skipmissing=false)
+export lookup
+"""
+Construct lookup and optional unwind stages for a pipeline.
+
+The defaults work for a to-many relation where the child collection's foreign key is the parent collection name.  
+"""
+function lookup(from, foreignField; localField=:_id, as=from, unwind=true, skipmissing=false)
     result = Pair[
-        +:lookup => (:from => with, :foreignField => foreignField, :localField => localField, :as => as)
+        +:lookup => (:from => from, :foreignField => foreignField, :localField => localField, :as => as)
     ]
     unwind && push!(result, (+:unwind => (:path => "\$$as", :preserveNullAndEmptyArrays => !skipmissing)))
     result
@@ -86,28 +91,29 @@ end
 """
     tomany(parent, children...)
 
-Pipeline helper TODO
+Construct a pipeline traversing a chain of to-many relations
 
 # Examples
 
 
 """
-function tomany(parent, children...; unwind=true)
+function tomany(parent, children...; unwind=true, skipmissing=false)
     result = []
     parent = string(parent)
     if startswith(parent, '$')
         parent = parent[2:end]
-        pk = "$parent._id"
+        localField = "$parent._id"
     else
-        pk = "_id"
+        localField = "_id"
     end
     for c in children
-        (fk, child) = c isa Union{Pair,Tuple} ? string.(Tuple(c)) : (parent, string(c))
-        push!(result, (
-            +:lookup => (:from => child, :localField => pk, :foreignField => fk, :as => child)))
-        unwind && push!(result, (+:unwind => "\$$child"))
+        (foreignField, child) = c isa Union{Pair,Tuple} ? string.(Tuple(c)) : (parent, string(c))
+        push!(result, lookup(child, foreignField; localField, as=child, unwind, skipmissing)...)
+        #push!(result, (
+        #    +:lookup => (:from => child, :foreignField => foreignField, :localField => localField, :as => child)))
+        #unwind && push!(result, (+:unwind => "\$$child"))
         parent = child
-        pk = "$(parent)._id"
+        localField = "$(parent)._id"
     end
     result
 end
@@ -140,7 +146,7 @@ function toparent(fk...; skipmissing=false)
                     (item, parts[1])
                 end
             end
-        as = localField
+        as = from
         push!(result,
             +:lookup => (:from => from, :localField => localField, :foreignField => "_id", :as => as),
             +:unwind => (:path => "\$$as", :preserveNullAndEmptyArrays => !skipmissing))

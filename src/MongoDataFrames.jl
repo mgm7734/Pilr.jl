@@ -11,7 +11,7 @@ Each `queryitem` can be a `Pair` or vector of pairs using `bson` syntax.
 
 The vectors are flattened so you don't need `...` after `tomany`[@ref].  
 
-If any item looks like a pipeline stage (starts with '"'), `Mongoc.aggregate` is called; 
+If any item looks like a pipeline stage (starts with '\$'), `Mongoc.aggregate` is called; 
 otherwise `Mongoc.find`.
 
 # Examples
@@ -21,14 +21,14 @@ julia> db = database("mmendel",QA);
 
 julia> mfind(db.project, :code=>+:regex=>"^test"; :limit=>1, :skip=>1)
 1×12 DataFrame
- Row │ _id                       active  code    dateCreated              isDe ⋯
-     │ String                    Bool    String  DateTime                 Bool ⋯
+ Row │ active  code    dateCreated              isDeleted  lastUpdated         ⋯
+     │ Bool    String  DateTime                 Bool       DateTime            ⋯
 ─────┼──────────────────────────────────────────────────────────────────────────
-   1 │ 54b40452e4b098676ab9f366    true  test2   2015-01-12T17:28:50.481       ⋯
+   1 │   true  test2   2015-01-12T17:28:50.481      false  2015-01-12T17:28:50 ⋯
                                                                8 columns omitted
 julia> configs = mfind(db.project, 
          :code=>+:regex=>"^test",
-         tomany("project", "instrument", "instrumentConfig"),
+         tomany("project", "instrument", "instrumentConfig"; skipmissing=true)
          ; limit=3);
 
 julia> configs[!, [:name, :instrumentConfig!name]]
@@ -68,15 +68,43 @@ function mfind(
         showquery && @info "mfind" collection pairs options
         c = M.find(collection, bson(pairs...); options=bson(options...))
     end
-    DataFrame(c)
+    select!(DataFrame(c), Not(Regex("^($( join(Pilr.NOISE_COLUMNS, '|') ))\$")), :)
 end
+mfind(db, project_code::AbstractString, dataset_code::AbstractString, query::Union{Pair,AbstractArray}...; kw...) = 
+        mfind(dataset_collection(db, project_code, dataset_code), query...; kw...) 
 
 function _isstage(i) 
     op = i |> first |> string
     startswith(op, '$') && !(op in ["\$or", "\$and"])
 end
 
-mfind(db, project_code::AbstractString, dataset_code::AbstractString, query::Union{Pair,AbstractArray}...; kw...) = 
-    select!(
-        mfind(dataset_collection(db, project_code, dataset_code), query...; kw...), 
-        Not(Regex("^($( join(Pilr.DEFAULT_REMOVE, '|') ))\$")), :)
+export shorten_paths
+"""
+Collapse nested object paths into short unique names.
+
+"""
+function shorten_paths(df)
+    paths = replace.(names(df, r"!"), r"[^!]*$" => "") |> sort |> unique
+    paths = paths[[i for i=1:length(paths) if i==length(paths) || !startswith(paths[i+1], paths[i]) ]]
+    pairs = []
+    while !isempty(paths)
+        tups = split.(paths, '!'; limit=2)
+    end
+
+    for path in paths
+        i = 1
+        a = path[1:1]
+        p = path
+        while true
+            a in abbrevs || break
+            if '!' in p
+                @info "what" p length(p)
+                p = replace(path, r"[^!]*!" => "")
+            end
+            a = a * p[1:1]
+            p = p[nextind(p,1):end]
+        end
+        push!(abbrevs, a)
+    end
+    (p=>a for (p,a) in zip(paths, abbrevs))
+end

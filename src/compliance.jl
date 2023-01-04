@@ -48,13 +48,14 @@ function deviceinfo(db, projectcode, query::Pair{Symbol}... = (); limit = nothin
     sort!(df, :time; rev)
 end
 
+export notifications
 """
 Notifications that were scheduled when the notification time arrived.
 TODO: take LOGOUT into account
 """
 function notifications(db, projectcode, filter...)
     @info "" projectcode filter
-    summary = pilrDataFrame(db, projectcode, APP_LOG, 
+    summary = pilrfind(db, projectcode, APP_LOG, 
         "data.tag"=>"NOTIFICATION_SUMMARY", filter...
         # ; options = bson(:limit=>500) # for development
     )
@@ -81,12 +82,6 @@ function notifications(db, projectcode, filter...)
     subset!(notifs, [:notifyat, :unscheduledat]=>(n,u) -> ismissing.(u) .|| n .< u)        
 end
 
-function parse_timestamp(utc, zone) #; zone=TimeZones.UTC_ZERO)
-    zdt = ZonedDateTime(DateTime(replace(utc, r"Z$" => "", )), tz"UTC")
-    astimezone(zdt, zone)
-    #DateTime(replace(ts, r"Z$" => "", ))
-end
-
 function notifications2(db, projcode, filter...)
     df = mfind(db, projcode, PARTICIPANT_EVENTS,
             filter...,
@@ -97,7 +92,7 @@ end
 
 export participant_events
 function participant_events(db, projcode, filter...; kw...)
-    ptevents = pilrShorten!(mfind(db, projcode, PARTICIPANT_EVENTS, filter...; kw... ))
+    ptevents = pilrshorten!(mfind(db, projcode, PARTICIPANT_EVENTS, filter...; kw... ))
     
     nrow(ptevents) > 0 || return ptevents
 
