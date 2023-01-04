@@ -36,7 +36,7 @@ jobs:
       - name: Build and deploy
         env:
           MONGO_PASSWORD: ${{ secrets.MONGO_PASSWORD }}
-          JENKINS_USER: rooty
+          JENKINS_USER: ${{ secrets.JENKINS_USER }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # If authenticating with GitHub Actions token
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }} # If authenticating with SSH deploy key
           SSH_OPTS2: -i$HOME/.ssh/github-actions
