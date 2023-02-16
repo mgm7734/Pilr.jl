@@ -32,6 +32,7 @@ M.find_one(collection, pairs::Pair...; options=()) = M.find_one(collection, bson
 
 include("dataset_collection.jl")
 
+include("dataset_download.jl")
 #M.aggregate(collection, pipeline::AbstractVector; flags::M.QueryFlags=M.QUERY_FLAG_NONE) =
 #    M.aggregate(collection, bson(pipeline); flags)
 

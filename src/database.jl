@@ -81,7 +81,7 @@ function database(jenkins_user, db_name, db_password;
         starttunnel(host, localport + i, jenkins_user; verbose)
     end
     url = "mongodb://$db_name-user:$db_password@" * 
-          join(["localhost:$(localport + i)" for i = eachindex(hosts)], ",") *
+          join(["127.0.0.1:$(localport + i)" for i = eachindex(hosts)], ",") *
           "/$db_name";
     #if use_replset
     #    pool = M.ClientPool(url, max_size = 2)

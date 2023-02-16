@@ -1,14 +1,16 @@
 name = "Pilr"
 uuid = "f363fe5b-9a9c-4ebf-9dc1-5f827d1806e9"
 authors = ["Mark Mendel <mmendel@meinergy.com> and contributors"]
-version = "0.14.0"
+version = "0.15.0"
 
 [deps]
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 Mongoc = "4fe8b98c-fc19-5c23-8ec2-168ff83495f2"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 SimpleTraits = "699a6c99-e7fa-54fc-8d76-47d257e15c1d"
 Sockets = "6462fe0b-24de-5631-8697-dd941f90decc"
 Tables = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"
