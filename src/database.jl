@@ -90,13 +90,23 @@ function database(jenkins_user, db_name, db_password;
     #    client = M.Client(url)
     #end
     #return Database(client[db_name], client)
+
+    database(url)
+end
+
+database(jenkins_user, name::PilrDbName, db_password = ENV["MONGO_PASSWORD"]; kws...) =
+    database(jenkins_user, "mei-s4r-$(lowercase(string(name)))", db_password; kws...)
+
+Base.getindex(db::Database, collection_name::String):: M.Collection = db.mongo_database[collection_name]
+
+function database(url::AbstractString; dbname=replace(url, r".*/"=>""))
     for i = 1:10
         try
             client = M.Client(url)
             sleep(1)
             r = M.ping(client)
             if r["ok"] == 1.0
-                return Database(client[db_name], client)
+                return Database(client[dbname], client)
             end
             @error "Ping #$i:" r
         catch ex
@@ -105,13 +115,3 @@ function database(jenkins_user, db_name, db_password;
     end
     error("failed to connect")
 end
-
-"""
-    database(jenkins_user [, db_name, [, db_password]] [localport = localport])
-
-Construct a connected database defaults.
-"""
-database(jenkins_user, name::PilrDbName = QA, db_password = ENV["MONGO_PASSWORD"]; kws...) =
-    database(jenkins_user, "mei-s4r-$(lowercase(string(name)))", db_password; kws...)
-
-Base.getindex(db::Database, collection_name::String):: M.Collection = db.mongo_database[collection_name]

@@ -3,20 +3,24 @@ export download_all_datasets, download_dataset
 using CSV, Dates, Printf
 
 """
-Download all datasets for a project
+Download all datasets for a project and range of days
 """
 function download_all_datasets(db, projectcode
-    ; start=Date(2000,1,1), stop=Dates.today())
+    ; start=Date(2000,1,1), stop=Dates.today(), excludecodes=[] )
 
-    datasetcodes = mfind(db.project, :code=>projectcode, tomany(:project, :dataset)).dataset!code
-    
+    datasetcodes = 
+        mfind(db.project, :code=>projectcode, tomany(:project, :dataset),
+            "dataset.calculationServiceName" => +:exists => false,
+            "dataset.code" => +:nin => excludecodes
+        ).dataset!code
+
     for dc in datasetcodes
         download_dataset(db, projectcode, dc; start, stop)
     end
 end
 
 """
-Download a day-range of data for a given project and dataset
+Download all data for a given project, dataset, and range of full days
 """
 function download_dataset(db, projectcode, datasetcode, filter...
     ; start=Date(2000,1,1), stop=Dates.today())
@@ -29,14 +33,14 @@ function download_dataset(db, projectcode, datasetcode, filter...
     df = mfind(db, projectcode, datasetcode, filter..., 
             :metadata!timestamp=>(+:gte=>DateTime(start), +:lt=>DateTime(stop)))
     
-    # Format like PiLR CSV downloads
-    select!(df,
-        :metadata!id=>"id", :metadata!pt=>"pt", 
-        :metadata!timestamp=>"timestamp(UTC)", :localTimestamp=>"timestamp(local)", 
-        [:metadata!timestamp, :localTimestamp] => ByRow((u,l) -> (l-u).value / 3600000) => :time_zone_offset,
-        [(old => new) for old in names(df) if match(r"^data!", old) !== nothing for new in [ SubString(old, 6) ]]...
-    )
-
+    if nrow(df) > 0
+        # Format like PiLR CSV downloads
+        select!(df,
+            :metadata!id=>"id", :metadata!pt=>"pt", 
+            :metadata!timestamp=>"timestamp(UTC)", :localTimestamp=>"timestamp(local)", 
+            [:metadata!timestamp, :localTimestamp] => ByRow((u,l) -> (l-u).value / 3600000) => :time_zone_offset,
+            [(old => new) for old in names(df) if match(r"^data!", old) !== nothing for new in [ SubString(old, 6) ]]...)
+    end
     
     @info "Writing" file nrow(df)
     CSV.write(file, df)
