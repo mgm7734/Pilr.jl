@@ -56,8 +56,14 @@ end
 
 """
     database(jenkins_user, db_name, db_password [, localport = $(nextport)]) => Database
+    database(mongodb_url)
 
 Return a [`Database`](@ref) connection.
+
+The first form uses an ssh tunnel to PiLR's mongodb server.
+
+The second form uses a standard mongo URL "mongodb://user:password@host[:port]/db".  
+If running inside the firewall, replset URIs are supprted.
 
 # Options
 
