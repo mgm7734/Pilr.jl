@@ -50,10 +50,48 @@ end
 dataset_collection(db::Database, project_code, dataset_code, kind = data) =
     dataset_collection(db.mongo_database, project_code, dataset_code, kind)
 
+export dfind
+"""
+A wrapper around `mfind` with some PiLR data specific enhancements
 
-# struct PilrDataFrame <: AbstractDataFrame
-    # df::DataFrame
-# end
+Post-process the `mfind` result as follows.
+
+* All DateTime values are replaced with a ZonedDateTime *except* for the `localTimestamp` column. 
+  If the timezone will be derived from the row's `:metadata!timestamp` and `:localTimestamp` values if 
+  they are present.  Otherwize, the timezone will be UTC
+
+"""
+function dfind(args...; kw...)
+    df = mfind(args...; kw...)
+    dtnames = names(df, Union{Missing, Nothing, DateTime})
+    transform!(df, 
+        AsTable(dtnames) => ByRow(r ->
+        begin
+            if :localTimestamp in keys(r) && !ismissing(r.localTimestamp)
+                dt = round(r.localTimestamp - r.metadata!timestamp, Second)
+                zone = FixedTimeZone("", dt.value)
+            else
+                zone = TimeZones.UTC_ZERO
+            end
+            #@info zone lt=("localTimestamp" in keys(r)) keys(r)
+            d = []
+            for f in keys(r) 
+                v = getfield(r, f)
+                if f == :localTimestamp || !(v isa DateTime)
+                    push!(d, f => v)
+                else 
+                    push!(d, f => ZonedDateTime(v, zone; from_utc=true))
+                end
+            end
+            NamedTuple(d)
+        end) => AsTable
+        #; renamecols = false
+        )
+    if ("localTimestamp" in dtnames)
+        select!(df, Not(:localTimestamp), :localTimestamp)
+    end
+    df
+end
 
 """
 Columns that are moved to the end of returned DataFrames
@@ -117,6 +155,7 @@ end
 pilrZonedTime(df::AbstractDataFrame, field = "metadata!timestamp") = map(eachrow(df)) do row
     pilrZonedTime(row)
 end
+@deprecate pilrZonedTime! pilrshorten!
 
 """
 Add a `ZoneDateTime` `timestamp` column to dataset DataFrame that combines `metadata!timestamp` and `localTimestamp`.
@@ -132,7 +171,6 @@ function pilrshorten!(df::AbstractDataFrame)
     select!(df, names(df) .=> replace.(names(df), r"^metadata!"=>"m!", r"^data!args!"=>"da!", r"^data!"=>"d!"))
     df
 end
-@deprecate pilrZonedTime! pilrshorten!
 
  """
      pilrZonedTime(timestamp_with_offset) => ZonedDateTime
