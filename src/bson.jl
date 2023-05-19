@@ -1,4 +1,4 @@
-using DataStructures
+using DataStructures, Dates, TimeZones
 
 const Key = Union{AbstractString,Symbol}
 
@@ -7,6 +7,39 @@ const Key = Union{AbstractString,Symbol}
     bson(AbstractVector{pair}) => Vector{Mongoc.BSON}
 
 Construct a BSON object using keyword arguments or pairs to reduce quote clutter.
+
+# Time Zone Warning
+
+TLDR: TimeZones.now(localzone()) when inserting into Mongo. Use ZonedDateTime whenever you need to *create* a TimeType.
+
+Java, Javscript and Mongodb Date objects all represent milliseconds since the Unix epoch (Jan 1, 1970).
+Julia DateTime do *not*. They are a wrapper around a calendar date and clock time.
+
+This is not a problem if you read a DateTime from Mongo, calculate with it and write it back out.  Your implied TimeZone
+will be UTC.
+
+However, if you write Dates.now() to a mongo field, it will be wrong.
+
+`bson` will correctly convert ZonedDateTime objects to a DateTime in UTC.
+
+In PiLR dataset terms, 
+
+* `DateTime(metadata!timestamp::ZonedDateTime) == localTimestamp`
+* `DateTime(metadata!timestamp::ZonedDateTime, UTC) == metadata!timestamp == bson(metadata!timestamp::ZonedDateTime)``
+
+# Representing BSON keys with a Julia Symbol
+
+```jldoctest
+julia> bson(:metadata!pt => "mei01")
+Mongoc.BSON with 1 entry:
+  "metadata.pt" => "mei01"
+```
+
+Symbols are converted to strings. Embeded "!' characters are converted to "." so you can write 
+`:metadata!pt` instead of `"metadata.pt"`.  
+[This makes data frame columns of flattened result into valid Julia identifiers.]
+
+
 
 # Examples
 
@@ -35,6 +68,9 @@ bson(t::Tuple) = bson(t...)
 bson(d::AbstractDict) = bson(pairs(d)...)
 bson(s::Symbol) = replace(string(s), "!!" => "!", "!" => ".")
 bson(re::Regex) = bson(+:regex => re.pattern)
+bson(d::ZonedDateTime) = DateTime(d, UTC)
+bson(d::DateTime) = d
+bson(d::TimeType) = DateTime(d)
 bson(x) = x
 
 # Mongoc.aggregate should accept Array{BSON} but doesn't

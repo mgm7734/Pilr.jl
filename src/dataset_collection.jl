@@ -1,10 +1,25 @@
 using Dates, DataFrames, TimeZones, Pilr
 import Mongoc as M
 
+"""
+Dataset code for use with `dataset_collection`
+"""
 APP_LOG = "pilrhealth:mobile:app_log"
+"""
+Dataset code for use with `dataset_collection`
+"""
 NOTIFICATION_LOG =  "pilrhealth:mobile:notification_log"
+"""
+Dataset code for use with `dataset_collection`
+"""
 PARTICIPANT_EVENTS= "pilrhealth:mobile:participant_events"
+"""
+Dataset code for use with `dataset_collection`
+"""
 SURVEY_DATA = "pilrhealth:mobile:survey_data"
+"""
+Dataset code for use with `dataset_collection`
+"""
 ENCOUNTER = "pilrhealth:mobile:encounter"
 
 @enum DataCollectionKind data rawData deleted
