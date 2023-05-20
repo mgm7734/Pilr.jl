@@ -13,14 +13,14 @@ Construct a BSON object using keyword arguments or pairs to reduce quote clutter
 TLDR: TimeZones.now(localzone()) when inserting into Mongo. Use ZonedDateTime whenever you need to *create* a TimeType.
 
 Java, Javscript and Mongodb Date objects all represent milliseconds since the Unix epoch (Jan 1, 1970).
-Julia DateTime do *not*. They are a wrapper around a calendar date and clock time.
+Julia DateTime do *not*. 
 
 This is not a problem if you read a DateTime from Mongo, calculate with it and write it back out.  Your implied TimeZone
 will be UTC.
 
-However, if you write Dates.now() to a mongo field, it will be wrong.
+However, if you write Dates.now() to a mongo field, it will be wrong.  It should be Dates.now(UTC())
 
-`bson` will correctly convert ZonedDateTime objects to a DateTime in UTC.
+`bson` will correctly convert ZonedDateTime objects to a DateTime realtive to UTC.
 
 In PiLR dataset terms, 
 
@@ -46,16 +46,16 @@ Symbols are converted to strings. Embeded "!' characters are converted to "." so
 ```jldoctest
 julia> bson(:metadata!pt => r"^mei.*1$", :project => +:in => ["proj1", "proj2"])
 Mongoc.BSON with 2 entries:
-  "metadata.pt" => Dict{Any, Any}("\$regex"=>"^mei.*1\$")
-  "project"     => Dict{Any, Any}("\$in"=>Any["proj1", "proj2"])
+  "metadata.pt" => Dict{String, Any}("\$regex"=>"^mei.*1\$")
+  "project"     => Dict{String, Any}("\$in"=>Any["proj1", "proj2"])
 
 julia> bson([
          +:match => :type=>"SUBMIT", 
          +:group => (:_id=>+:pt, :N=>+:sum=>1)
        ])
 Mongoc.BSON with 2 entries:
-  "0" => Dict{Any, Any}("\$match"=>Dict{Any, Any}("type"=>"SUBMIT"))
-  "1" => Dict{Any, Any}("\$group"=>Dict{Any, Any}("_id"=>"\$pt", "N"=>Dict{Any,…
+  "0" => Dict{String, Any}("\$match"=>Dict{String, Any}("type"=>"SUBMIT"))
+  "1" => Dict{String, Any}("\$group"=>Dict{String, Any}("_id"=>"\$pt", "N"=>Dic…
 julia> bson(a=1, b=2)
 Mongoc.BSON with 2 entries:
   "a" => 1
