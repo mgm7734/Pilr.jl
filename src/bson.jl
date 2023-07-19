@@ -8,25 +8,6 @@ const Key = Union{AbstractString,Symbol}
 
 Construct a BSON object using keyword arguments or pairs to reduce quote clutter.
 
-# Time Zone Warning
-
-TLDR: TimeZones.now(localzone()) when inserting into Mongo. Use ZonedDateTime whenever you need to *create* a TimeType.
-
-Java, Javscript and Mongodb Date objects all represent milliseconds since the Unix epoch (Jan 1, 1970).
-Julia DateTime do *not*. 
-
-This is not a problem if you read a DateTime from Mongo, calculate with it and write it back out.  Your implied TimeZone
-will be UTC.
-
-However, if you write Dates.now() to a mongo field, it will be wrong.  It should be Dates.now(UTC())
-
-`bson` will correctly convert ZonedDateTime objects to a DateTime realtive to UTC.
-
-In PiLR dataset terms, 
-
-* `DateTime(metadata!timestamp::ZonedDateTime) == localTimestamp`
-* `DateTime(metadata!timestamp::ZonedDateTime, UTC) == metadata!timestamp == bson(metadata!timestamp::ZonedDateTime)``
-
 # Representing BSON keys with a Julia Symbol
 
 ```jldoctest

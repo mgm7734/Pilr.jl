@@ -46,6 +46,8 @@ function deviceinfo(db, projectcode, query::Pair{Symbol}... = (); limit = nothin
     sort!(df, :time; rev=false)
     unique!(df, F)
     sort!(df, :time; rev)
+    #df.projectcode .= projectcode
+    #df
 end
 
 export notifications
@@ -152,3 +154,11 @@ function compliance(db, project, filter...=())
     end
 end
 
+export apiConsumer
+"""
+Fetch apiConsumers for a participant
+"""
+function apiConsumer(db, projcode, ptcode)
+    t=dfind(db.project, :code=>projcode, tomany(:project, :participant, :device), :participant!code=>ptcode);
+    select(dfind(db.apiConsumer, :_id=>+:in=>t.device!apiConsumer), :accessCode, :)
+end
