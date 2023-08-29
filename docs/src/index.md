@@ -86,6 +86,19 @@ julia> Mongoc.find(db.project, bson(:code=>"base_pilr_ema")) |> DataFrame
    1 │ 58827b04e4b0507240a4e127                    false  base_pilr_ema  2017- ⋯
                                                               18 columns omitted
 ```
+## DateTime Warning
+
+When passing Julia `DateTime` to mongo, ensure that they are relative to UTC. E.g., use 
+`Dates.now(UTC)` instead just `Dates.now()`.
+
+To be completely safe, use `ZonedDateTime` instead, which `bson` will correctly convert to DateTime.
+
+The exception to this rule is the `localTimestamp` field of dataset documents. If you use [`dfind`](@ref)
+to retrieve `doc`, the following invariant will hold:
+```julia
+DateTime(doc.metadata!timestamp) == doc.localTimeStamp 
+typeof(doc.metadata!timestamp) == ZonedDateTime
+```
 
 ## [Index](@id main-index)
 

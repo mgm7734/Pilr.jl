@@ -23,7 +23,8 @@ function surveyqueue(db, projectcode, filter::Pair... = []; kw...)
                 for item in a 
                 for obj in [get(item, "obj", nothing)] if obj !== nothing ]
                 #for obj in [get(item, "obj", Dict("code"=>"(none)"))] ]
-        )=>:content
+        )=>:content,
+        :localTimestamp,
     )
 end
 
@@ -57,15 +58,13 @@ TODO: take LOGOUT into account
 """
 function notifications(db, projectcode, filter...)
     @info "" projectcode filter
-    summary = pilrfind(db, projectcode, APP_LOG, 
-        "data.tag"=>"NOTIFICATION_SUMMARY", filter...
+    summary = dfind(db, projectcode, APP_LOG, 
+        :data!tag=>"NOTIFICATION_SUMMARY", filter...
         # ; options = bson(:limit=>500) # for development
     )
     #@info "summary fields:" names(summary)
-    select!(summary, AsTable(:) => ByRow(pilrZonedTime) => :timestamp, :metadata!pt, :data!args!scheduled)
-    sort!(summary, :timestamp)
-
-    transform!(summary, :timestamp=>:scheduledat)
+    select!(summary, :metadata!timestamp => :scheduledat, :metadata!pt, :data!args!scheduled)
+    sort!(summary, :scheduledat)
 
     notifs = combine(groupby(summary, :metadata!pt)) do sdf
         sdf.unscheduledat = vcat(sdf.scheduledat[2:end], [missing])
@@ -75,14 +74,18 @@ function notifications(db, projectcode, filter...)
             :metadata!pt,
             [:data!args!scheduled, :scheduledat]=>ByRow((s,sat)->(
                     notifid=s["notificationId"], 
-                    notifyat=parse_timestamp(s["scheduleDate"], timezone(sat)), 
-                    expireat=parse_timestamp(s["expireDate"], timezone(sat)))
+                    title=s["title"],
+                    text=s["text"],
+                    notifyat=astimezone(ZonedDateTime(s["scheduleDate"]), timezone(sat)), 
+                    expireat=astimezone(ZonedDateTime(s["expireDate"]), timezone(sat)),
+                )
              )=>AsTable,
             :scheduledat, :unscheduledat,
         )
     end
     subset!(notifs, [:notifyat, :unscheduledat]=>(n,u) -> ismissing.(u) .|| n .< u)        
 end
+
 
 function notifications2(db, projcode, filter...)
     df = mfind(db, projcode, PARTICIPANT_EVENTS,

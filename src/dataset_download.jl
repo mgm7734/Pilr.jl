@@ -41,6 +41,9 @@ function download_dataset(db, projectcode, datasetcode, filter...
             [:metadata!timestamp, :localTimestamp] => ByRow((u,l) -> (l-u).value / 3600000) => :time_zone_offset,
             [(old => new) for old in names(df) if match(r"^data!", old) !== nothing for new in [ SubString(old, 6) ]]...)
     end
+
+    # CSV requires mapping `nothing` to `missing`
+    transform!(df, names(df) .=> (v -> something.(v,missing)) .=> names(df))
     
     @info "Writing" file nrow(df)
     CSV.write(file, df)
