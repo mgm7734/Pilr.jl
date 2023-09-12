@@ -12,10 +12,25 @@ This is a hodge-podge set of tools for pulling data from Mongodb & PiLR log file
 julia> using Pkg; Pkg.add("https://github.com/mgm7734/Pilr.jl");
 ```
 
+## Note on Connecting to a Atlas
+
+[`database`](@ref) connects to a Mongo database.  
+
+It returns a [`Pilr.Database`](@ref) that wraps the native Mongodb driver's `Client` and [`Mongoc.Database`](https://felipenoris.github.io/Mongoc.jl/stable/api/#Database) objects [`Pilr.Database`](@ref).  
+
+To connect to Atlas, you may have have to set an environment variable to the path to the CA cert.pem file.
+```
+shell> openssl version -d
+OPENSSLDIR: "/usr/local/etc/openssl@3"
+
+julia> ENV["SSL_CERT_FILE"]="/usr/local/etc/openssl@3/cert.pem";
+julia> db=database("mongodb+srv://staging:$PASSWORD@cluster0.g2omy.mongodb.net/?retryWrites=true&w=majority"; dbname="staging");
+```
+
 ## Overview
 
-* [`database`](@ref) returns a [`Pilr.Database`](@ref) connected to a PiLR Mongo database via a tunnel. 
-  It is mostly a wrapper for [`Mongoc.Database`](https://felipenoris.github.io/Mongoc.jl/stable/api/#Database).
+* [`database`](@ref) can open an SSH tunnel and connect to a PiLR database:  
+  
   ```jldoctest test
   julia> using Pilr
 
