@@ -106,7 +106,7 @@ function lookup(from, foreignField; localField=:_id, as=from, unwind=true, skipm
 end
 
 """
-    tomany(parent, children...)
+    tomany(parent, children... ; [skipmissing = false], [unwind = true])
 
 Construct a pipeline traversing a chain of to-many relations
 
