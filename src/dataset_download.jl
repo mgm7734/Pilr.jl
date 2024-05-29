@@ -34,12 +34,19 @@ function download_dataset(db, projectcode, datasetcode, filter...
             :metadata!timestamp=>(+:gte=>DateTime(start), +:lt=>DateTime(stop)))
     
     if nrow(df) > 0
+        # calculated datasets won't have a metadata!id
+        if !("metadata!id" in names(df))
+            df.metadata!id = df._id
+        end
         # Format like PiLR CSV downloads
-        select!(df,
-            :metadata!id=>"id", :metadata!pt=>"pt", 
-            :metadata!timestamp=>"timestamp(UTC)", :localTimestamp=>"timestamp(local)", 
-            [:metadata!timestamp, :localTimestamp] => ByRow((u,l) -> (l-u).value / 3600000) => :time_zone_offset,
-            [(old => new) for old in names(df) if match(r"^data!", old) !== nothing for new in [ SubString(old, 6) ]]...)
+        if issubset(["metadata!pt", "metadata!timestamp", "localTimestamp"], names(df))
+            select!(df,
+                :metadata!id=>"id", :metadata!pt=>"pt", 
+                :metadata!timestamp=>"timestamp(UTC)", :localTimestamp=>"timestamp(local)", 
+                [:metadata!timestamp, :localTimestamp] => ByRow((u,l) -> (l-u).value / 3600000) => :time_zone_offset,
+                [(old => new) for old in names(df) if match(r"^data!", old) !== nothing for new in [ SubString(old, 6) ]]...)
+        end
+        df
     end
 
     # CSV requires mapping `nothing` to `missing`

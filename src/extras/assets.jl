@@ -1,8 +1,6 @@
 using Pilr
 import Mongoc as M
 
-DESCRIPTION = 
-
 ENV["SSL_CERT_FILE"]="/usr/local/etc/openssl@3/cert.pem"
 
 # Requires ENV["MONGO_PASSWORD"] and STAGING_PASSWORD
@@ -42,26 +40,4 @@ function  assets_migrate(odb, ndb, oprojcode, nprojcode = oprojcode; doit=false)
     doit && M.insert_one(ndb["$nprojid.files"], M.BSON(nfile))
   end
   #ofiles
-end
-
-"""
-TODO: for now use mei-tools/asset-fix-urls
-
-# Example
-```
-assets_fix_urls(ndb, "ecbimport_a", "https://cloud.pilrhealth.com/project/ecb_sandbox/", "https://staging.pilrhealth.com/project/ecbimport_a/");
-```
-"""
-function assets_fix_urls(db, projcode, oldprefix, newprefix)
-  configids = dfind(db.project, :code=>projcode, tomany(:project, :instrument, :instrumentConfig)).instrumentConfig!_id
-  for stack in M.find(db.emaOtsCardstack, bson(:configuration => +:in => configids))
-    updates = Dict()
-    val = get(stack, "imageUrl", "")
-    if (startswith(val, oldprefix))
-      updates["imageUrl"] = replace(val, oldprefix => newprefix)
-      @info stack["name"] val updates
-    end
-     
-  end
-  # stacks = dfind(db.project, :code=>projcode, tomany(:project, :instrument, :instrumentConfig, :configuration=>:emaOtsCardstack))
 end
