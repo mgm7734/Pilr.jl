@@ -54,6 +54,8 @@ end
 export notifications
 """
 Notifications that were scheduled when the notification time arrived.
+Note: dataSourceId is the apiConsumer id which identifies the device.  Each device schedules independently, sort
+analysis must really be by dataSourceId, i.e., device, rather than pt.
 TODO: take LOGOUT into account
 """
 function notifications(db, projectcode, filter...)
@@ -63,15 +65,18 @@ function notifications(db, projectcode, filter...)
         # ; options = bson(:limit=>500) # for development
     )
     #@info "summary fields:" names(summary)
-    select!(summary, :metadata!timestamp => :scheduledat, :metadata!pt, :data!args!scheduled)
+    select!(summary, 
+        :metadata!timestamp => :scheduledat, 
+        [:metadata!pt, :dataSourceId] => ByRow((p,d) -> "$(p)/$(d)") => :pt,
+        :data!args!scheduled)
     sort!(summary, :scheduledat)
 
-    notifs = combine(groupby(summary, :metadata!pt)) do sdf
+    result = combine(groupby(summary, :pt)) do sdf
         sdf.unscheduledat = vcat(sdf.scheduledat[2:end], [missing])
         notifs = flatten(sdf, :data!args!scheduled)
         #@info "notif fields" names(notifs) maxlog=2
         select!(notifs, 
-            :metadata!pt,
+            :pt,
             [:data!args!scheduled, :scheduledat]=>ByRow((s,sat)->(
                     notifid=s["notificationId"], 
                     title=s["title"],
@@ -82,8 +87,20 @@ function notifications(db, projectcode, filter...)
              )=>AsTable,
             :scheduledat, :unscheduledat,
         )
+        if nrow(notifs) == 0
+            notifs.notifid= []
+            notifs.title= []
+            notifs.text= []
+            notifs.expireat= []
+        end
+        if "notifyat" ∉ names(notifs)
+            @info "wtf?" names(notifs)
+            notifs.notifyat= []
+        end
+        @info "notifs" sdf.pt[1] nrow(notifs) names(notifs)
+        notifs
     end
-    subset!(notifs, [:notifyat, :unscheduledat]=>(n,u) -> ismissing.(u) .|| n .< u)        
+    subset!(result, [:notifyat, :unscheduledat]=>(n,u) -> ismissing.(u) .|| n .< u)        
 end
 
 
